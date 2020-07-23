@@ -22,7 +22,7 @@ The above creates an empty 5x5 kernel, where all weights are zero. When applied 
 
 ### Channel extraction
 
-Using the weigths, we can define a kernel to extract individual colour channels. The following specifies a trivial kernel of radius 0 (meaning it only covers one pixel without consideration of the pixel’s neighbours) where the output is entirely influenced by the blue and alpha channels (weight 1) and where the red and green channels have no influence (weight 0):
+Using the weights, we can define a kernel to extract individual colour channels. The following specifies a trivial kernel of radius 0 (meaning it only covers one pixel without consideration of the pixel’s neighbours) where the output is entirely influenced by the blue and alpha channels (weight 1) and where the red and green channels have no influence (weight 0):
 
 ```go
 kernel := convolver.KernelWithRadius(0)
