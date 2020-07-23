@@ -11,7 +11,7 @@ This software is made available under an [MIT license](LICENSE).
 
 ## Example usage
 
-Convolution starts with defining a kernel. A kernel has a “radius” which defines size of a rectangular patch in pixels. For example, for any given pixel, a kernel of radius 2 extends 2 pixels away in all four directions, for a total patch size of 5x5: 
+Convolution starts with defining a kernel. A kernel has a “radius” which defines the size of a rectangular patch in pixels. For example, for any given pixel, a kernel of radius 2 extends 2 pixels away in all four directions, for a total patch size of 5x5: 
 
 ```go
 kernel := convolver.KernelWithRadius(2)
