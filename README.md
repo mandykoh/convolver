@@ -2,7 +2,7 @@
 
 ![Convolver title](doc-images/title.png)
 
-`convolver` is an image convolution library which extends classical convolution with aggregation operators beyond summation. This allows for the expression of more image processing operations.
+`convolver` is an image convolution library which extends classical convolution with aggregation operators beyond summation. This allows for the expression of more image processing operations. The convolution kernels also allow specifying values separately for R, G, B, and alpha channels so that per-channel operations can be supported.
 
 See the [API documentation](https://godoc.org/github.com/mandykoh/convolver) for more details.
 
