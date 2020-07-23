@@ -1,14 +1,59 @@
 package convolver
 
 import (
+	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"image/png"
 	"log"
+	"math/rand"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
+
+func BenchmarkParallelisation(b *testing.B) {
+
+	// Generate a large image with random pixels
+	inputImg := image.NewNRGBA(image.Rect(0, 0, 8192, 8192))
+	for i := inputImg.Rect.Min.Y; i < inputImg.Rect.Max.Y; i++ {
+		for j := inputImg.Rect.Min.X; j < inputImg.Rect.Max.X; j++ {
+			inputImg.SetNRGBA(j, i, color.NRGBA{
+				R: uint8(rand.Intn(256)),
+				G: uint8(rand.Intn(256)),
+				B: uint8(rand.Intn(256)),
+				A: uint8(rand.Intn(256)),
+			})
+		}
+	}
+
+	// Gaussian blur kernel
+	weights := []int32{
+		1, 4, 6, 4, 1,
+		4, 16, 24, 16, 4,
+		6, 24, 36, 24, 6,
+		4, 16, 24, 16, 4,
+		1, 4, 6, 4, 1,
+	}
+
+	kernel := KernelWithRadius(2)
+	for i := 0; i < kernel.SideLength(); i++ {
+		for j := 0; j < kernel.SideLength(); j++ {
+			offset := i*kernel.SideLength() + j
+			kernel.SetWeightRGBA(j, i, weights[offset])
+		}
+	}
+
+	for threadCount := 1; threadCount <= runtime.NumCPU(); threadCount++ {
+		b.Run(fmt.Sprintf("with parallelism %d", threadCount), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = kernel.ApplySum(inputImg, threadCount)
+			}
+		})
+	}
+}
 
 func TestColourSeparation(t *testing.T) {
 	imgFile, err := os.Open("test-images/avocado.png")
