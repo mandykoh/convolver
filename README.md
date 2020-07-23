@@ -125,7 +125,7 @@ And the result looks like this:
 
 Convolution can also be performed using aggregation functions other than summation.
 
-For example, we can define a simple, uniformly weighted 5x5 circle for a kernel:
+For example, we can define a simple, uniformly weighted 5x5 “circle” for a kernel:
 
 ```go
 weights := []int32{
