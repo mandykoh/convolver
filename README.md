@@ -4,6 +4,8 @@
 
 `convolver` is an image convolution library which extends classical convolution with aggregation operators beyond summation. This allows for the expression of more image processing operations. The convolution kernels also allow specifying values separately for R, G, B, and alpha channels so that per-channel operations can be supported.
 
+Convolution operations support parallel processing out of the box, allowing the degree of parallelism to be specified for acceleration on multi-core systems.
+
 See the [API documentation](https://godoc.org/github.com/mandykoh/convolver) for more details.
 
 This software is made available under an [MIT license](LICENSE).
