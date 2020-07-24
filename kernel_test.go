@@ -38,7 +38,7 @@ func BenchmarkParallelisation(b *testing.B) {
 	for threadCount := 1; threadCount <= runtime.NumCPU(); threadCount++ {
 		b.Run(fmt.Sprintf("with parallelism %d", threadCount), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_ = kernel.ApplySum(inputImg, threadCount)
+				_ = kernel.ApplyAvg(inputImg, threadCount)
 			}
 		})
 	}
@@ -89,41 +89,41 @@ func TestKernel(t *testing.T) {
 		}
 	})
 
-	t.Run("Sum()", func(t *testing.T) {
+	t.Run("Avg()", func(t *testing.T) {
 		img := randomImage(3, 3)
 
 		t.Run("with uniform weights", func(t *testing.T) {
-			expectedSums := [4]int32{}
+			expectedAvg := [4]int32{}
 			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 					c := img.NRGBAAt(j, i)
-					expectedSums[0] += int32(c.R)
-					expectedSums[1] += int32(c.G)
-					expectedSums[2] += int32(c.B)
-					expectedSums[3] += int32(c.A)
+					expectedAvg[0] += int32(c.R)
+					expectedAvg[1] += int32(c.G)
+					expectedAvg[2] += int32(c.B)
+					expectedAvg[3] += int32(c.A)
 				}
 			}
-			expectedSums[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedSums[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedSums[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedSums[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
 
 			checkExpectedSum := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				result := kernel.Sum(img, 1, 1)
+				result := kernel.Avg(img, 1, 1)
 
-				if expected, actual := expectedSums[0], int32(result.R); expected != actual {
-					t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedAvg[0], int32(result.R); expected != actual {
+					t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedSums[1], int32(result.G); expected != actual {
-					t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedAvg[1], int32(result.G); expected != actual {
+					t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedSums[2], int32(result.B); expected != actual {
-					t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedAvg[2], int32(result.B); expected != actual {
+					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedSums[3], int32(result.A); expected != actual {
-					t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedAvg[3], int32(result.A); expected != actual {
+					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
 
@@ -161,34 +161,34 @@ func TestKernel(t *testing.T) {
 				}
 			}
 
-			sums := [4]int32{}
+			avg := [4]int32{}
 			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
 					c := img.NRGBAAt(j, i)
-					sums[0] += int32(c.R) * (row + col)
-					sums[1] += int32(c.G) * (row + col)
-					sums[2] += int32(c.B) * (row + col)
-					sums[3] += int32(c.A) * (row + col)
+					avg[0] += int32(c.R) * (row + col)
+					avg[1] += int32(c.G) * (row + col)
+					avg[2] += int32(c.B) * (row + col)
+					avg[3] += int32(c.A) * (row + col)
 				}
 			}
-			sums[0] /= totalWeight
-			sums[1] /= totalWeight
-			sums[2] /= totalWeight
-			sums[3] /= totalWeight
+			avg[0] /= totalWeight
+			avg[1] /= totalWeight
+			avg[2] /= totalWeight
+			avg[3] /= totalWeight
 
-			result := kernel.Sum(img, 1, 1)
+			result := kernel.Avg(img, 1, 1)
 
-			if expected, actual := sums[0], int32(result.R); expected != actual {
-				t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+			if expected, actual := avg[0], int32(result.R); expected != actual {
+				t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := sums[1], int32(result.G); expected != actual {
-				t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
+			if expected, actual := avg[1], int32(result.G); expected != actual {
+				t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := sums[2], int32(result.B); expected != actual {
-				t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
+			if expected, actual := avg[2], int32(result.B); expected != actual {
+				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := sums[3], int32(result.A); expected != actual {
-				t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
+			if expected, actual := avg[3], int32(result.A); expected != actual {
+				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
 	})
@@ -218,7 +218,7 @@ func TestColourSeparation(t *testing.T) {
 
 	startTime := time.Now()
 	result := inputImg
-	result = kernel.ApplySum(result, 4)
+	result = kernel.ApplyAvg(result, 4)
 	endTime := time.Now()
 
 	log.Printf("Finished in %v", endTime.Sub(startTime))
@@ -273,7 +273,7 @@ func TestGaussianBlur(t *testing.T) {
 	startTime := time.Now()
 	result := inputImg
 	for i := 0; i < 8; i++ {
-		result = kernel.ApplySum(result, 4)
+		result = kernel.ApplyAvg(result, 4)
 	}
 	endTime := time.Now()
 
@@ -325,7 +325,7 @@ func TestSharpen(t *testing.T) {
 	}
 
 	startTime := time.Now()
-	result := kernel.ApplySum(inputImg, 4)
+	result := kernel.ApplyAvg(inputImg, 4)
 	endTime := time.Now()
 
 	log.Printf("Finished in %v", endTime.Sub(startTime))

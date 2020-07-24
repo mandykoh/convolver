@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mandykoh/convolver)](https://goreportcard.com/report/github.com/mandykoh/convolver)
 [![Build Status](https://travis-ci.org/mandykoh/convolver.svg?branch=main)](https://travis-ci.org/mandykoh/convolver)
 
-`convolver` is an image convolution library which extends classical convolution with aggregation operators beyond summation. This allows for the expression of more image processing operations. The convolution kernels also allow specifying values separately for R, G, B, and alpha channels so that per-channel operations can be supported.
+`convolver` is an image convolution library which extends classical convolution with aggregation operators beyond weighted averaging. This allows for the expression of more image processing operations. The convolution kernels also allow specifying values separately for R, G, B, and alpha channels so that per-channel operations can be supported.
 
 Convolution operations support parallel processing out of the box, allowing the degree of parallelism to be specified for mostly-linear acceleration on multi-core systems.
 
@@ -36,10 +36,10 @@ x, y, r, g, b, a := 0, 0, 0, 0, 1, 1
 kernel.SetWeight(x, y, r, g, b, a)
 ```
 
-Once defined, a kernel can be applied using a given aggregation function (here, summation, although it doesn’t really matter for a 1x1 kernel):
+Once defined, a kernel can be applied using a given aggregation function (here, averaging, although it doesn’t really matter for a 1x1 kernel):
 
 ```go
-resultImg := kernel.ApplySum(inputImg, parallelism)
+resultImg := kernel.ApplyAvg(inputImg, parallelism)
 ```
 
 The `parallelism` parameter allows a kernel to be applied using parallel processing to take advantage of multiple CPU cores. Setting this to 1 means kernel processing is single threaded; setting it to 4 means the processing will be spread across four threads.
@@ -71,10 +71,10 @@ for i := 0; i < kernel.SideLength(); i++ {
 }
 ```
 
-This kernel can be applied to an image with summation as the aggregation operator like this:
+This kernel can be applied to an image with averaging as the aggregation operator like this:
 
 ```go
-resultImg := kernel.ApplySum(inputImg, parallelism)
+resultImg := kernel.ApplyAvg(inputImg, parallelism)
 ```
 
 The result looks like this:
@@ -87,7 +87,7 @@ The operations expressed by many kernels can be emphasised in effect by iterativ
 
 ```go
 for i := 0; i < 7; i++ {
-    resultImg = kernel.ApplySum(resultImg, parallelism)
+    resultImg = kernel.ApplyAvg(resultImg, parallelism)
 }
 ```
 
@@ -116,10 +116,10 @@ for i := 0; i < kernel.SideLength(); i++ {
 }
 ```
 
-Applying this kernel (still using summation) can be done in the same way as before:
+Applying this kernel (still using averaging) can be done in the same way as before:
 
 ```go
-resultImg := kernel.ApplySum(inputImg, parallelism)
+resultImg := kernel.ApplyAvg(inputImg, parallelism)
 ```
 
 And the result looks like this:
@@ -129,7 +129,7 @@ And the result looks like this:
 
 ### Dilation
 
-Convolution can also be performed using aggregation functions other than summation.
+Convolution can also be performed using aggregation functions other than a weighted average.
 
 For example, we can define a simple, uniformly weighted 5x5 “circle” for a kernel:
 
@@ -151,7 +151,7 @@ for i := 0; i < kernel.SideLength(); i++ {
 }
 ```
 
-However, instead of applying this using the `Sum` operator (which would yield something like a simple blur), we can apply it using a `Max` operator:
+However, instead of applying this using the `Avg` operator (which would yield something like a simple blur), we can apply it using a `Max` operator:
 
 ```go
 resultImg := kernel.ApplyMax(inputImg, parallelism)

@@ -23,8 +23,8 @@ func (k *Kernel) ApplyMin(img *image.NRGBA, parallelism int) *image.NRGBA {
 	return k.apply(img, k.Min, parallelism)
 }
 
-func (k *Kernel) ApplySum(img *image.NRGBA, parallelism int) *image.NRGBA {
-	return k.apply(img, k.Sum, parallelism)
+func (k *Kernel) ApplyAvg(img *image.NRGBA, parallelism int) *image.NRGBA {
+	return k.apply(img, k.Avg, parallelism)
 }
 
 func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGBA {
@@ -51,6 +51,44 @@ func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGB
 	allDone.Wait()
 
 	return result
+}
+
+func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
+	clip := k.clipToBounds(img.Rect, x, y)
+
+	totalWeight := kernelWeight{}
+	sum := kernelWeight{}
+
+	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
+		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
+			weight := k.weights[s*k.sideLength+t]
+			totalWeight.R += weight.R
+			totalWeight.G += weight.G
+			totalWeight.B += weight.B
+			totalWeight.A += weight.A
+
+			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
+			sum.R += int32(c.R) * weight.R
+			sum.G += int32(c.G) * weight.G
+			sum.B += int32(c.B) * weight.B
+			sum.A += int32(c.A) * weight.A
+		}
+	}
+
+	if totalWeight.R > 0 {
+		sum.R /= totalWeight.R
+	}
+	if totalWeight.G > 0 {
+		sum.G /= totalWeight.G
+	}
+	if totalWeight.B > 0 {
+		sum.B /= totalWeight.B
+	}
+	if totalWeight.A > 0 {
+		sum.A /= totalWeight.A
+	}
+
+	return sum.toNRGBA()
 }
 
 func (k *Kernel) clipToBounds(bounds image.Rectangle, x, y int) kernelClip {
@@ -149,44 +187,6 @@ func (k *Kernel) SetWeightRGBA(x, y int, weight int32) {
 
 func (k *Kernel) SideLength() int {
 	return k.sideLength
-}
-
-func (k *Kernel) Sum(img *image.NRGBA, x, y int) color.NRGBA {
-	clip := k.clipToBounds(img.Rect, x, y)
-
-	totalWeight := kernelWeight{}
-	sum := kernelWeight{}
-
-	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
-		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
-			weight := k.weights[s*k.sideLength+t]
-			totalWeight.R += weight.R
-			totalWeight.G += weight.G
-			totalWeight.B += weight.B
-			totalWeight.A += weight.A
-
-			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += int32(c.R) * weight.R
-			sum.G += int32(c.G) * weight.G
-			sum.B += int32(c.B) * weight.B
-			sum.A += int32(c.A) * weight.A
-		}
-	}
-
-	if totalWeight.R > 0 {
-		sum.R /= totalWeight.R
-	}
-	if totalWeight.G > 0 {
-		sum.G /= totalWeight.G
-	}
-	if totalWeight.B > 0 {
-		sum.B /= totalWeight.B
-	}
-	if totalWeight.A > 0 {
-		sum.A /= totalWeight.A
-	}
-
-	return sum.toNRGBA()
 }
 
 func KernelWithRadius(radius int) Kernel {
