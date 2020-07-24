@@ -44,47 +44,135 @@ func BenchmarkParallelisation(b *testing.B) {
 	}
 }
 
-func TestApply(t *testing.T) {
-	img := randomImage(256, 256)
+func TestKernel(t *testing.T) {
 
-	mutex := sync.Mutex{}
-	pixelsVisited := make(map[image.Point]struct{})
+	t.Run("apply()", func(t *testing.T) {
+		img := randomImage(256, 256)
 
-	op := func(_ *image.NRGBA, x, y int) color.NRGBA {
-		mutex.Lock()
-		defer mutex.Unlock()
+		mutex := sync.Mutex{}
+		pixelsVisited := make(map[image.Point]struct{})
 
-		pixelsVisited[image.Pt(x, y)] = struct{}{}
-		return img.NRGBAAt(x, y)
-	}
+		op := func(_ *image.NRGBA, x, y int) color.NRGBA {
+			mutex.Lock()
+			defer mutex.Unlock()
 
-	kernel := KernelWithRadius(0)
-	result := kernel.apply(img, op, runtime.NumCPU())
+			pixelsVisited[image.Pt(x, y)] = struct{}{}
+			return img.NRGBAAt(x, y)
+		}
 
-	if expected, actual := img.Rect, result.Rect; expected.Dx() != actual.Dx() || expected.Dy() != actual.Dy() {
-		t.Errorf("Expected resulting image to be %dx%d but was %dx%d", expected.Dx(), expected.Dy(), actual.Dx(), actual.Dy())
-	}
+		kernel := KernelWithRadius(0)
+		result := kernel.apply(img, op, runtime.NumCPU())
 
-	differentPixelCount := 0
-	pixelsNotVisited := 0
+		if expected, actual := img.Rect, result.Rect; expected.Dx() != actual.Dx() || expected.Dy() != actual.Dy() {
+			t.Errorf("Expected resulting image to be %dx%d but was %dx%d", expected.Dx(), expected.Dy(), actual.Dx(), actual.Dy())
+		}
 
-	for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
-		for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-			if expected, actual := img.NRGBAAt(j, i), result.NRGBAAt(j, i); expected != actual {
-				differentPixelCount++
-			}
-			if _, ok := pixelsVisited[image.Pt(j, i)]; !ok {
-				pixelsNotVisited++
+		differentPixelCount := 0
+		pixelsNotVisited := 0
+
+		for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+			for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+				if expected, actual := img.NRGBAAt(j, i), result.NRGBAAt(j, i); expected != actual {
+					differentPixelCount++
+				}
+				if _, ok := pixelsVisited[image.Pt(j, i)]; !ok {
+					pixelsNotVisited++
+				}
 			}
 		}
-	}
 
-	if differentPixelCount > 0 {
-		t.Errorf("Expected resulting image and input image to match but they differ at %d pixels", differentPixelCount)
-	}
-	if pixelsNotVisited > 0 {
-		t.Errorf("Expected kernel operation to have been applied to all pixels but %d were not visited", pixelsNotVisited)
-	}
+		if differentPixelCount > 0 {
+			t.Errorf("Expected resulting image and input image to match but they differ at %d pixels", differentPixelCount)
+		}
+		if pixelsNotVisited > 0 {
+			t.Errorf("Expected kernel operation to have been applied to all pixels but %d were not visited", pixelsNotVisited)
+		}
+	})
+
+	t.Run("Sum()", func(t *testing.T) {
+		img := randomImage(3, 3)
+
+		t.Run("includes all pixels covered by kernel", func(t *testing.T) {
+			kernel := KernelWithRadius(1)
+			for i := 0; i < kernel.SideLength(); i++ {
+				for j := 0; j < kernel.SideLength(); j++ {
+					kernel.SetWeightRGBA(j, i, 1)
+				}
+			}
+
+			sums := [4]int32{}
+			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+					c := img.NRGBAAt(j, i)
+					sums[0] += int32(c.R)
+					sums[1] += int32(c.G)
+					sums[2] += int32(c.B)
+					sums[3] += int32(c.A)
+				}
+			}
+			sums[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			sums[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			sums[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			sums[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
+
+			result := kernel.Sum(img, 1, 1)
+
+			if expected, actual := sums[0], int32(result.R); expected != actual {
+				t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[1], int32(result.G); expected != actual {
+				t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[2], int32(result.B); expected != actual {
+				t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[3], int32(result.A); expected != actual {
+				t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
+			}
+		})
+
+		t.Run("scales pixel values by kernel weights", func(t *testing.T) {
+			totalWeight := int32(0)
+			kernel := KernelWithRadius(1)
+			for i := 0; i < kernel.SideLength(); i++ {
+				for j := 0; j < kernel.SideLength(); j++ {
+					weight := int32(i + j)
+					totalWeight += weight
+					kernel.SetWeightRGBA(j, i, weight)
+				}
+			}
+
+			sums := [4]int32{}
+			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					c := img.NRGBAAt(j, i)
+					sums[0] += int32(c.R) * (row + col)
+					sums[1] += int32(c.G) * (row + col)
+					sums[2] += int32(c.B) * (row + col)
+					sums[3] += int32(c.A) * (row + col)
+				}
+			}
+			sums[0] /= totalWeight
+			sums[1] /= totalWeight
+			sums[2] /= totalWeight
+			sums[3] /= totalWeight
+
+			result := kernel.Sum(img, 1, 1)
+
+			if expected, actual := sums[0], int32(result.R); expected != actual {
+				t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[1], int32(result.G); expected != actual {
+				t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[2], int32(result.B); expected != actual {
+				t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := sums[3], int32(result.A); expected != actual {
+				t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
+			}
+		})
+	})
 }
 
 func TestColourSeparation(t *testing.T) {

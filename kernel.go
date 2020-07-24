@@ -133,8 +133,6 @@ func (k *Kernel) SideLength() int {
 }
 
 func (k *Kernel) Sum(img *image.NRGBA, x, y int) color.NRGBA {
-	sum := kernelWeight{}
-
 	totalWeight := kernelWeight{}
 	for _, w := range k.weights {
 		totalWeight.R += w.R
@@ -143,6 +141,7 @@ func (k *Kernel) Sum(img *image.NRGBA, x, y int) color.NRGBA {
 		totalWeight.A += w.A
 	}
 
+	sum := kernelWeight{}
 	for s := 0; s < k.sideLength; s++ {
 		for t := 0; t < k.sideLength; t++ {
 			weight := k.weights[s*k.sideLength+t]
