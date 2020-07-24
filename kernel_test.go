@@ -92,43 +92,62 @@ func TestKernel(t *testing.T) {
 	t.Run("Sum()", func(t *testing.T) {
 		img := randomImage(3, 3)
 
-		t.Run("includes all pixels covered by kernel", func(t *testing.T) {
-			kernel := KernelWithRadius(1)
-			for i := 0; i < kernel.SideLength(); i++ {
-				for j := 0; j < kernel.SideLength(); j++ {
-					kernel.SetWeightRGBA(j, i, 1)
-				}
-			}
-
-			sums := [4]int32{}
+		t.Run("with uniform weights", func(t *testing.T) {
+			expectedSums := [4]int32{}
 			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 					c := img.NRGBAAt(j, i)
-					sums[0] += int32(c.R)
-					sums[1] += int32(c.G)
-					sums[2] += int32(c.B)
-					sums[3] += int32(c.A)
+					expectedSums[0] += int32(c.R)
+					expectedSums[1] += int32(c.G)
+					expectedSums[2] += int32(c.B)
+					expectedSums[3] += int32(c.A)
 				}
 			}
-			sums[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			sums[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			sums[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			sums[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedSums[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedSums[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedSums[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedSums[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
 
-			result := kernel.Sum(img, 1, 1)
+			checkExpectedSum := func(t *testing.T, kernel Kernel) {
+				t.Helper()
 
-			if expected, actual := sums[0], int32(result.R); expected != actual {
-				t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+				result := kernel.Sum(img, 1, 1)
+
+				if expected, actual := expectedSums[0], int32(result.R); expected != actual {
+					t.Errorf("Expected normalised sum of red channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedSums[1], int32(result.G); expected != actual {
+					t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedSums[2], int32(result.B); expected != actual {
+					t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedSums[3], int32(result.A); expected != actual {
+					t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
+				}
 			}
-			if expected, actual := sums[1], int32(result.G); expected != actual {
-				t.Errorf("Expected normalised sum of green channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := sums[2], int32(result.B); expected != actual {
-				t.Errorf("Expected normalised sum of blue channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := sums[3], int32(result.A); expected != actual {
-				t.Errorf("Expected normalised sum of alpha channel to be %d but was %d", expected, actual)
-			}
+
+			t.Run("includes all pixels covered by kernel", func(t *testing.T) {
+				kernel := KernelWithRadius(1)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightRGBA(j, i, 1)
+					}
+				}
+
+				checkExpectedSum(t, kernel)
+			})
+
+			t.Run("clips kernel against edges of image", func(t *testing.T) {
+				kernel := KernelWithRadius(2)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightRGBA(j, i, 1)
+					}
+				}
+
+				checkExpectedSum(t, kernel)
+			})
 		})
 
 		t.Run("scales pixel values by kernel weights", func(t *testing.T) {

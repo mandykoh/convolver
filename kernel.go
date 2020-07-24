@@ -53,6 +53,25 @@ func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGB
 	return result
 }
 
+func (k *Kernel) clipToBounds(bounds image.Rectangle, x, y int) kernelClip {
+	clip := kernelClip{}
+
+	if edgeDist := x - bounds.Min.X; edgeDist < k.radius {
+		clip.Left = edgeDist
+	}
+	if edgeDist := bounds.Max.X - x - 1; edgeDist < k.radius {
+		clip.Right = edgeDist
+	}
+	if edgeDist := y - bounds.Min.Y; edgeDist < k.radius {
+		clip.Top = edgeDist
+	}
+	if edgeDist := bounds.Max.Y - y - 1; edgeDist < k.radius {
+		clip.Bottom = edgeDist
+	}
+
+	return clip
+}
+
 func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 	max := kernelWeight{
 		math.MinInt32,
@@ -133,18 +152,18 @@ func (k *Kernel) SideLength() int {
 }
 
 func (k *Kernel) Sum(img *image.NRGBA, x, y int) color.NRGBA {
-	totalWeight := kernelWeight{}
-	for _, w := range k.weights {
-		totalWeight.R += w.R
-		totalWeight.G += w.G
-		totalWeight.B += w.B
-		totalWeight.A += w.A
-	}
+	clip := k.clipToBounds(img.Rect, x, y)
 
+	totalWeight := kernelWeight{}
 	sum := kernelWeight{}
-	for s := 0; s < k.sideLength; s++ {
-		for t := 0; t < k.sideLength; t++ {
+
+	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
+		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
+			totalWeight.R += weight.R
+			totalWeight.G += weight.G
+			totalWeight.B += weight.B
+			totalWeight.A += weight.A
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
 			sum.R += int32(c.R) * weight.R
@@ -178,6 +197,13 @@ func KernelWithRadius(radius int) Kernel {
 		sideLength: sideLength,
 		weights:    make([]kernelWeight, sideLength*sideLength),
 	}
+}
+
+type kernelClip struct {
+	Left   int
+	Right  int
+	Top    int
+	Bottom int
 }
 
 type kernelWeight struct {
