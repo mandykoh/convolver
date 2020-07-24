@@ -2,6 +2,10 @@
 
 ![Convolver title](doc-images/title.png)
 
+[![GoDoc](https://godoc.org/github.com/mandykoh/convolver?status.svg)](https://godoc.org/github.com/mandykoh/convolver)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mandykoh/convolver)](https://goreportcard.com/report/github.com/mandykoh/convolver)
+[![Build Status](https://travis-ci.org/mandykoh/convolver.svg?branch=main)](https://travis-ci.org/mandykoh/convolver)
+
 `convolver` is an image convolution library which extends classical convolution with aggregation operators beyond summation. This allows for the expression of more image processing operations. The convolution kernels also allow specifying values separately for R, G, B, and alpha channels so that per-channel operations can be supported.
 
 Convolution operations support parallel processing out of the box, allowing the degree of parallelism to be specified for mostly-linear acceleration on multi-core systems.
