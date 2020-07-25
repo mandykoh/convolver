@@ -95,16 +95,16 @@ func (k *Kernel) clipToBounds(bounds image.Rectangle, x, y int) kernelClip {
 	clip := kernelClip{}
 
 	if edgeDist := x - bounds.Min.X; edgeDist < k.radius {
-		clip.Left = edgeDist
+		clip.Left = k.radius - edgeDist
 	}
 	if edgeDist := bounds.Max.X - x - 1; edgeDist < k.radius {
-		clip.Right = edgeDist
+		clip.Right = k.radius - edgeDist
 	}
 	if edgeDist := y - bounds.Min.Y; edgeDist < k.radius {
-		clip.Top = edgeDist
+		clip.Top = k.radius - edgeDist
 	}
 	if edgeDist := bounds.Max.Y - y - 1; edgeDist < k.radius {
-		clip.Bottom = edgeDist
+		clip.Bottom = k.radius - edgeDist
 	}
 
 	return clip
