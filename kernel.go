@@ -1,6 +1,7 @@
 package convolver
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -186,6 +187,10 @@ func (k *Kernel) SetWeightUniform(x, y int, weight int32) {
 }
 
 func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
+	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
+		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
+	}
+
 	for i := 0; i < k.SideLength(); i++ {
 		for j := 0; j < k.SideLength(); j++ {
 			offset := i*k.SideLength() + j
@@ -196,6 +201,10 @@ func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
 }
 
 func (k *Kernel) SetWeightsUniform(weights []int32) {
+	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
+		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
+	}
+
 	for i := 0; i < k.SideLength(); i++ {
 		for j := 0; j < k.SideLength(); j++ {
 			offset := i*k.SideLength() + j
