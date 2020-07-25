@@ -7,7 +7,6 @@ import (
 	"image/draw"
 	"image/png"
 	"log"
-	"math"
 	"math/rand"
 	"os"
 	"path"
@@ -521,40 +520,36 @@ func TestKernel(t *testing.T) {
 			checkExpectedMax := func(t *testing.T, kernel Kernel, uniformWeight int) {
 				t.Helper()
 
-				expectedMax := [4]int32{
-					math.MinInt32,
-					math.MinInt32,
-					math.MinInt32,
-					math.MinInt32,
-				}
+				expectedMax := [4]int32{-1, -1, -1, -1}
+
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 						c := img.NRGBAAt(j, i)
 
 						if uniformWeight > 0 {
-							if int32(c.R) > expectedMax[0] {
+							if int32(c.R) > expectedMax[0] || expectedMax[0] < 0 {
 								expectedMax[0] = int32(c.R)
 							}
-							if int32(c.G) > expectedMax[1] {
+							if int32(c.G) > expectedMax[1] || expectedMax[1] < 0 {
 								expectedMax[1] = int32(c.G)
 							}
-							if int32(c.B) > expectedMax[2] {
+							if int32(c.B) > expectedMax[2] || expectedMax[2] < 0 {
 								expectedMax[2] = int32(c.B)
 							}
-							if int32(c.A) > expectedMax[3] {
+							if int32(c.A) > expectedMax[3] || expectedMax[3] < 0 {
 								expectedMax[3] = int32(c.A)
 							}
 						} else if uniformWeight < 0 {
-							if -int32(c.R) > -expectedMax[0] {
+							if int32(c.R) < expectedMax[0] || expectedMax[0] < 0 {
 								expectedMax[0] = int32(c.R)
 							}
-							if -int32(c.G) > -expectedMax[1] {
+							if int32(c.G) < expectedMax[1] || expectedMax[1] < 0 {
 								expectedMax[1] = int32(c.G)
 							}
-							if -int32(c.B) > -expectedMax[2] {
+							if int32(c.B) < expectedMax[2] || expectedMax[2] < 0 {
 								expectedMax[2] = int32(c.B)
 							}
-							if -int32(c.A) > -expectedMax[3] {
+							if int32(c.A) < expectedMax[3] || expectedMax[3] < 0 {
 								expectedMax[3] = int32(c.A)
 							}
 						}
@@ -611,6 +606,7 @@ func TestKernel(t *testing.T) {
 			kernel.SetWeightsUniform(weights)
 
 			max := [4]int32{}
+
 			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
 					w := weights[int(row)*kernel.SideLength()+int(col)]
@@ -647,6 +643,141 @@ func TestKernel(t *testing.T) {
 			}
 			if expected, actual := max[3], int32(result.A); expected != actual {
 				t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
+			}
+		})
+	})
+
+	t.Run("Min()", func(t *testing.T) {
+		img := randomImage(3, 3)
+
+		t.Run("with uniform weights", func(t *testing.T) {
+
+			checkExpectedMin := func(t *testing.T, kernel Kernel, uniformWeight int) {
+				t.Helper()
+
+				expectedMin := [4]int32{-1, -1, -1, -1}
+
+				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+						c := img.NRGBAAt(j, i)
+
+						if uniformWeight > 0 {
+							if int32(c.R) < expectedMin[0] || expectedMin[0] < 0 {
+								expectedMin[0] = int32(c.R)
+							}
+							if int32(c.G) < expectedMin[1] || expectedMin[1] < 0 {
+								expectedMin[1] = int32(c.G)
+							}
+							if int32(c.B) < expectedMin[2] || expectedMin[2] < 0 {
+								expectedMin[2] = int32(c.B)
+							}
+							if int32(c.A) < expectedMin[3] || expectedMin[3] < 0 {
+								expectedMin[3] = int32(c.A)
+							}
+						} else if uniformWeight < 0 {
+							if -int32(c.R) < -expectedMin[0] || expectedMin[0] < 0 {
+								expectedMin[0] = int32(c.R)
+							}
+							if -int32(c.G) < -expectedMin[1] || expectedMin[1] < 0 {
+								expectedMin[1] = int32(c.G)
+							}
+							if -int32(c.B) < -expectedMin[2] || expectedMin[2] < 0 {
+								expectedMin[2] = int32(c.B)
+							}
+							if -int32(c.A) < -expectedMin[3] || expectedMin[3] < 0 {
+								expectedMin[3] = int32(c.A)
+							}
+						}
+					}
+				}
+
+				result := kernel.Min(img, 1, 1)
+
+				if expected, actual := expectedMin[0], int32(result.R); expected != actual {
+					t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMin[1], int32(result.G); expected != actual {
+					t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMin[2], int32(result.B); expected != actual {
+					t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMin[3], int32(result.A); expected != actual {
+					t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
+				}
+			}
+
+			t.Run("includes all pixels covered by kernel", func(t *testing.T) {
+				kernel := KernelWithRadius(1)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, 1)
+					}
+				}
+
+				checkExpectedMin(t, kernel, 1)
+			})
+
+			t.Run("clips kernel against edges of image", func(t *testing.T) {
+				kernel := KernelWithRadius(2)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, -1)
+					}
+				}
+
+				checkExpectedMin(t, kernel, -1)
+			})
+		})
+
+		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
+			weights := []int32{
+				0, 1, 0,
+				1, 0, 1,
+				0, 1, 0,
+			}
+
+			kernel := KernelWithRadius(1)
+			kernel.SetWeightsUniform(weights)
+
+			min := [4]int32{255, 255, 255, 255}
+
+			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					w := weights[int(row)*kernel.SideLength()+int(col)]
+					if w == 0 {
+						continue
+					}
+
+					c := img.NRGBAAt(j, i)
+					if int32(c.R) < min[0] {
+						min[0] = int32(c.R)
+					}
+					if int32(c.G) < min[1] {
+						min[1] = int32(c.G)
+					}
+					if int32(c.B) < min[2] {
+						min[2] = int32(c.B)
+					}
+					if int32(c.A) < min[3] {
+						min[3] = int32(c.A)
+					}
+				}
+			}
+
+			result := kernel.Min(img, 1, 1)
+
+			if expected, actual := min[0], int32(result.R); expected != actual {
+				t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := min[1], int32(result.G); expected != actual {
+				t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := min[2], int32(result.B); expected != actual {
+				t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := min[3], int32(result.A); expected != actual {
+				t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
 	})

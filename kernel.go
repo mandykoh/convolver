@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"math"
 	"sync"
 )
 
@@ -115,10 +114,10 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 	clip := k.clipToBounds(img.Rect, x, y)
 
 	max := kernelWeight{
-		math.MinInt32,
-		math.MinInt32,
-		math.MinInt32,
-		math.MinInt32,
+		-1,
+		-1,
+		-1,
+		-1,
 	}
 
 	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
@@ -126,16 +125,16 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if int32(c.R)*weight.R > max.R*weight.R {
+			if int32(c.R)*weight.R > max.R*weight.R || (max.R < 0 && weight.R != 0) {
 				max.R = int32(c.R)
 			}
-			if int32(c.G)*weight.G > max.G*weight.G {
+			if int32(c.G)*weight.G > max.G*weight.G || (max.G < 0 && weight.G != 0) {
 				max.G = int32(c.G)
 			}
-			if int32(c.B)*weight.B > max.B*weight.B {
+			if int32(c.B)*weight.B > max.B*weight.B || (max.B < 0 && weight.B != 0) {
 				max.B = int32(c.B)
 			}
-			if int32(c.A)*weight.A > max.A*weight.A {
+			if int32(c.A)*weight.A > max.A*weight.A || (max.A < 0 && weight.A != 0) {
 				max.A = int32(c.A)
 			}
 		}
@@ -145,28 +144,30 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 }
 
 func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
+	clip := k.clipToBounds(img.Rect, x, y)
+
 	min := kernelWeight{
-		math.MaxInt32,
-		math.MaxInt32,
-		math.MaxInt32,
-		math.MaxInt32,
+		-1,
+		-1,
+		-1,
+		-1,
 	}
 
-	for s := 0; s < k.sideLength; s++ {
-		for t := 0; t < k.sideLength; t++ {
+	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
+		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if int32(c.R)*weight.R < min.R*weight.R {
+			if int32(c.R)*weight.R < min.R*weight.R || (min.R < 0 && weight.R != 0) {
 				min.R = int32(c.R)
 			}
-			if int32(c.G)*weight.G < min.G*weight.G {
+			if int32(c.G)*weight.G < min.G*weight.G || (min.G < 0 && weight.G != 0) {
 				min.G = int32(c.G)
 			}
-			if int32(c.B)*weight.B < min.B*weight.B {
+			if int32(c.B)*weight.B < min.B*weight.B || (min.B < 0 && weight.B != 0) {
 				min.B = int32(c.B)
 			}
-			if int32(c.A)*weight.A < min.A*weight.A {
+			if int32(c.A)*weight.A < min.A*weight.A || (min.A < 0 && weight.A != 0) {
 				min.A = int32(c.A)
 			}
 		}
