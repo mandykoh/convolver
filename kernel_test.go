@@ -10,6 +10,38 @@ import (
 	"testing"
 )
 
+func BenchmarkAggregation(b *testing.B) {
+	inputImg := randomImage(4096, 4096)
+
+	weights := []int32{
+		0, 1, 0, 1, 0,
+		1, 0, 1, 0, 1,
+		0, 1, 0, 1, 0,
+		1, 0, 1, 0, 1,
+		0, 1, 0, 1, 0,
+	}
+
+	kernel := KernelWithRadius(2)
+	kernel.SetWeightsUniform(weights)
+
+	cases := []struct {
+		OpName string
+		Op     opFunc
+	}{
+		{OpName: "Avg", Op: kernel.Avg},
+		{OpName: "Max", Op: kernel.Max},
+		{OpName: "Min", Op: kernel.Min},
+	}
+
+	for _, c := range cases {
+		b.Run(fmt.Sprintf("with %s operation", c.OpName), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = kernel.apply(inputImg, c.Op, runtime.NumCPU())
+			}
+		})
+	}
+}
+
 func BenchmarkParallelisation(b *testing.B) {
 	inputImg := randomImage(8192, 8192)
 
