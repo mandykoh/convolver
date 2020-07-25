@@ -311,7 +311,7 @@ func ExampleKernel_channelExtraction() {
 
 	log.Printf("Channel extraction applied in %v", endTime.Sub(startTime))
 
-	_ = os.Mkdir("example-output", 0x700)
+	_ = os.Mkdir("example-output", 0x776)
 	outFilePath := path.Join("example-output", "example-channel-extraction.png")
 	outFile, err := os.Create(outFilePath)
 	if err != nil {
@@ -379,7 +379,7 @@ func ExampleKernel_gaussianBlur() {
 
 	log.Printf("Gaussian blur applied in %v", endTime.Sub(startTime))
 
-	_ = os.Mkdir("example-output", 0x700)
+	_ = os.Mkdir("example-output", 0x776)
 	outFilePath := path.Join("example-output", "example-gaussian-blur.png")
 	outFile, err := os.Create(outFilePath)
 	if err != nil {
@@ -440,7 +440,7 @@ func ExampleKernel_sharpen() {
 
 	log.Printf("Sharpen applied in %v", endTime.Sub(startTime))
 
-	_ = os.Mkdir("example-output", 0x700)
+	_ = os.Mkdir("example-output", 0x776)
 	outFilePath := path.Join("example-output", "example-sharpen.png")
 	outFile, err := os.Create(outFilePath)
 	if err != nil {
@@ -511,7 +511,7 @@ func ExampleKernel_dilateErode() {
 
 	log.Printf("Dilate-erode applied in %v", endTime.Sub(startTime))
 
-	_ = os.Mkdir("example-output", 0x700)
+	_ = os.Mkdir("example-output", 0x776)
 	outFilePath := path.Join("example-output", "example-dilate-erode.png")
 	outFile, err := os.Create(outFilePath)
 	if err != nil {
