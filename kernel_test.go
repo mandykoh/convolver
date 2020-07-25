@@ -517,7 +517,7 @@ func TestKernel(t *testing.T) {
 
 		t.Run("with uniform weights", func(t *testing.T) {
 
-			checkExpectedMax := func(t *testing.T, kernel Kernel, uniformWeight int) {
+			checkExpectedMax := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
 				expectedMax := [4]int32{-1, -1, -1, -1}
@@ -526,32 +526,17 @@ func TestKernel(t *testing.T) {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 						c := img.NRGBAAt(j, i)
 
-						if uniformWeight > 0 {
-							if int32(c.R) > expectedMax[0] || expectedMax[0] < 0 {
-								expectedMax[0] = int32(c.R)
-							}
-							if int32(c.G) > expectedMax[1] || expectedMax[1] < 0 {
-								expectedMax[1] = int32(c.G)
-							}
-							if int32(c.B) > expectedMax[2] || expectedMax[2] < 0 {
-								expectedMax[2] = int32(c.B)
-							}
-							if int32(c.A) > expectedMax[3] || expectedMax[3] < 0 {
-								expectedMax[3] = int32(c.A)
-							}
-						} else if uniformWeight < 0 {
-							if int32(c.R) < expectedMax[0] || expectedMax[0] < 0 {
-								expectedMax[0] = int32(c.R)
-							}
-							if int32(c.G) < expectedMax[1] || expectedMax[1] < 0 {
-								expectedMax[1] = int32(c.G)
-							}
-							if int32(c.B) < expectedMax[2] || expectedMax[2] < 0 {
-								expectedMax[2] = int32(c.B)
-							}
-							if int32(c.A) < expectedMax[3] || expectedMax[3] < 0 {
-								expectedMax[3] = int32(c.A)
-							}
+						if int32(c.R) > expectedMax[0] {
+							expectedMax[0] = int32(c.R)
+						}
+						if int32(c.G) > expectedMax[1] {
+							expectedMax[1] = int32(c.G)
+						}
+						if int32(c.B) > expectedMax[2] {
+							expectedMax[2] = int32(c.B)
+						}
+						if int32(c.A) > expectedMax[3] {
+							expectedMax[3] = int32(c.A)
 						}
 					}
 				}
@@ -580,18 +565,22 @@ func TestKernel(t *testing.T) {
 					}
 				}
 
-				checkExpectedMax(t, kernel, 1)
+				checkExpectedMax(t, kernel)
 			})
 
 			t.Run("clips kernel against edges of image", func(t *testing.T) {
-				kernel := KernelWithRadius(2)
-				for i := 0; i < kernel.SideLength(); i++ {
-					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightUniform(j, i, -1)
-					}
+				weights := []int32{
+					-1, -1, -1, -1, -1,
+					-1, 1, 1, 1, -1,
+					-1, 1, 1, 1, -1,
+					-1, 1, 1, 1, -1,
+					-1, -1, -1, -1, -1,
 				}
 
-				checkExpectedMax(t, kernel, -1)
+				kernel := KernelWithRadius(2)
+				kernel.SetWeightsUniform(weights)
+
+				checkExpectedMax(t, kernel)
 			})
 		})
 
@@ -652,41 +641,26 @@ func TestKernel(t *testing.T) {
 
 		t.Run("with uniform weights", func(t *testing.T) {
 
-			checkExpectedMin := func(t *testing.T, kernel Kernel, uniformWeight int) {
+			checkExpectedMin := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				expectedMin := [4]int32{-1, -1, -1, -1}
+				expectedMin := [4]int32{255, 255, 255, 255}
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 						c := img.NRGBAAt(j, i)
 
-						if uniformWeight > 0 {
-							if int32(c.R) < expectedMin[0] || expectedMin[0] < 0 {
-								expectedMin[0] = int32(c.R)
-							}
-							if int32(c.G) < expectedMin[1] || expectedMin[1] < 0 {
-								expectedMin[1] = int32(c.G)
-							}
-							if int32(c.B) < expectedMin[2] || expectedMin[2] < 0 {
-								expectedMin[2] = int32(c.B)
-							}
-							if int32(c.A) < expectedMin[3] || expectedMin[3] < 0 {
-								expectedMin[3] = int32(c.A)
-							}
-						} else if uniformWeight < 0 {
-							if -int32(c.R) < -expectedMin[0] || expectedMin[0] < 0 {
-								expectedMin[0] = int32(c.R)
-							}
-							if -int32(c.G) < -expectedMin[1] || expectedMin[1] < 0 {
-								expectedMin[1] = int32(c.G)
-							}
-							if -int32(c.B) < -expectedMin[2] || expectedMin[2] < 0 {
-								expectedMin[2] = int32(c.B)
-							}
-							if -int32(c.A) < -expectedMin[3] || expectedMin[3] < 0 {
-								expectedMin[3] = int32(c.A)
-							}
+						if int32(c.R) < expectedMin[0] {
+							expectedMin[0] = int32(c.R)
+						}
+						if int32(c.G) < expectedMin[1] {
+							expectedMin[1] = int32(c.G)
+						}
+						if int32(c.B) < expectedMin[2] {
+							expectedMin[2] = int32(c.B)
+						}
+						if int32(c.A) < expectedMin[3] {
+							expectedMin[3] = int32(c.A)
 						}
 					}
 				}
@@ -715,18 +689,18 @@ func TestKernel(t *testing.T) {
 					}
 				}
 
-				checkExpectedMin(t, kernel, 1)
+				checkExpectedMin(t, kernel)
 			})
 
 			t.Run("clips kernel against edges of image", func(t *testing.T) {
 				kernel := KernelWithRadius(2)
 				for i := 0; i < kernel.SideLength(); i++ {
 					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightUniform(j, i, -1)
+						kernel.SetWeightUniform(j, i, 1)
 					}
 				}
 
-				checkExpectedMin(t, kernel, -1)
+				checkExpectedMin(t, kernel)
 			})
 		})
 
