@@ -93,7 +93,7 @@ The resulting eight passes would then look like this:
 
 ### Sharpening
 
-A simple sharpening kernel can be expressed like this:
+A simple sharpening kernel can be expressed like this. The weights emphasise contrast between a pixel and its four neighbours:
 
 ```go
 weights := []int32{
