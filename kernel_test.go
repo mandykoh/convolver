@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"image/png"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"path"
@@ -38,244 +39,6 @@ func BenchmarkParallelisation(b *testing.B) {
 			}
 		})
 	}
-}
-
-func TestKernel(t *testing.T) {
-
-	t.Run("apply()", func(t *testing.T) {
-		img := randomImage(256, 256)
-
-		mutex := sync.Mutex{}
-		pixelsVisited := make(map[image.Point]struct{})
-
-		op := func(_ *image.NRGBA, x, y int) color.NRGBA {
-			mutex.Lock()
-			defer mutex.Unlock()
-
-			pixelsVisited[image.Pt(x, y)] = struct{}{}
-			return img.NRGBAAt(x, y)
-		}
-
-		kernel := KernelWithRadius(0)
-		result := kernel.apply(img, op, runtime.NumCPU())
-
-		if expected, actual := img.Rect, result.Rect; expected.Dx() != actual.Dx() || expected.Dy() != actual.Dy() {
-			t.Errorf("Expected resulting image to be %dx%d but was %dx%d", expected.Dx(), expected.Dy(), actual.Dx(), actual.Dy())
-		}
-
-		differentPixelCount := 0
-		pixelsNotVisited := 0
-
-		for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
-			for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-				if expected, actual := img.NRGBAAt(j, i), result.NRGBAAt(j, i); expected != actual {
-					differentPixelCount++
-				}
-				if _, ok := pixelsVisited[image.Pt(j, i)]; !ok {
-					pixelsNotVisited++
-				}
-			}
-		}
-
-		if differentPixelCount > 0 {
-			t.Errorf("Expected resulting image and input image to match but they differ at %d pixels", differentPixelCount)
-		}
-		if pixelsNotVisited > 0 {
-			t.Errorf("Expected kernel operation to have been applied to all pixels but %d were not visited", pixelsNotVisited)
-		}
-	})
-
-	t.Run("Avg()", func(t *testing.T) {
-		img := randomImage(3, 3)
-
-		t.Run("with uniform weights", func(t *testing.T) {
-			expectedAvg := [4]int32{}
-			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
-				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-					c := img.NRGBAAt(j, i)
-					expectedAvg[0] += int32(c.R)
-					expectedAvg[1] += int32(c.G)
-					expectedAvg[2] += int32(c.B)
-					expectedAvg[3] += int32(c.A)
-				}
-			}
-			expectedAvg[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
-
-			checkExpectedSum := func(t *testing.T, kernel Kernel) {
-				t.Helper()
-
-				result := kernel.Avg(img, 1, 1)
-
-				if expected, actual := expectedAvg[0], int32(result.R); expected != actual {
-					t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := expectedAvg[1], int32(result.G); expected != actual {
-					t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := expectedAvg[2], int32(result.B); expected != actual {
-					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := expectedAvg[3], int32(result.A); expected != actual {
-					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
-				}
-			}
-
-			t.Run("includes all pixels covered by kernel", func(t *testing.T) {
-				kernel := KernelWithRadius(1)
-				for i := 0; i < kernel.SideLength(); i++ {
-					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightUniform(j, i, 1)
-					}
-				}
-
-				checkExpectedSum(t, kernel)
-			})
-
-			t.Run("clips kernel against edges of image", func(t *testing.T) {
-				kernel := KernelWithRadius(2)
-				for i := 0; i < kernel.SideLength(); i++ {
-					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightUniform(j, i, 1)
-					}
-				}
-
-				checkExpectedSum(t, kernel)
-			})
-		})
-
-		t.Run("scales pixel values by kernel weights", func(t *testing.T) {
-			totalWeight := int32(0)
-			kernel := KernelWithRadius(1)
-			for i := 0; i < kernel.SideLength(); i++ {
-				for j := 0; j < kernel.SideLength(); j++ {
-					weight := int32(i + j)
-					totalWeight += weight
-					kernel.SetWeightUniform(j, i, weight)
-				}
-			}
-
-			avg := [4]int32{}
-			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
-				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
-					c := img.NRGBAAt(j, i)
-					avg[0] += int32(c.R) * (row + col)
-					avg[1] += int32(c.G) * (row + col)
-					avg[2] += int32(c.B) * (row + col)
-					avg[3] += int32(c.A) * (row + col)
-				}
-			}
-			avg[0] /= totalWeight
-			avg[1] /= totalWeight
-			avg[2] /= totalWeight
-			avg[3] /= totalWeight
-
-			result := kernel.Avg(img, 1, 1)
-
-			if expected, actual := avg[0], int32(result.R); expected != actual {
-				t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := avg[1], int32(result.G); expected != actual {
-				t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := avg[2], int32(result.B); expected != actual {
-				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := avg[3], int32(result.A); expected != actual {
-				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
-			}
-		})
-	})
-
-	t.Run("clipToBounds()", func(t *testing.T) {
-
-		// 5x5 image with origin at 10,10
-		bounds := image.Rect(10, 10, 15, 15)
-
-		// 3x3 kernel
-		kernel := KernelWithRadius(1)
-
-		cases := []struct {
-			Side         string
-			KernelCentre image.Point
-			ExpectedClip kernelClip
-		}{
-			{
-				Side:         "centre",
-				KernelCentre: image.Pt(12, 12),
-				ExpectedClip: kernelClip{0, 0, 0, 0},
-			},
-			{
-				Side:         "left inside",
-				KernelCentre: image.Pt(10, 12),
-				ExpectedClip: kernelClip{1, 0, 0, 0},
-			},
-			{
-				Side:         "left outside",
-				KernelCentre: image.Pt(9, 12),
-				ExpectedClip: kernelClip{2, 0, 0, 0},
-			},
-			{
-				Side:         "right inside",
-				KernelCentre: image.Pt(14, 11),
-				ExpectedClip: kernelClip{0, 1, 0, 0},
-			},
-			{
-				Side:         "right outside",
-				KernelCentre: image.Pt(15, 11),
-				ExpectedClip: kernelClip{0, 2, 0, 0},
-			},
-			{
-				Side:         "top inside",
-				KernelCentre: image.Pt(12, 10),
-				ExpectedClip: kernelClip{0, 0, 1, 0},
-			},
-			{
-				Side:         "top outside",
-				KernelCentre: image.Pt(12, 9),
-				ExpectedClip: kernelClip{0, 0, 2, 0},
-			},
-			{
-				Side:         "bottom inside",
-				KernelCentre: image.Pt(12, 14),
-				ExpectedClip: kernelClip{0, 0, 0, 1},
-			},
-			{
-				Side:         "bottom outside",
-				KernelCentre: image.Pt(12, 15),
-				ExpectedClip: kernelClip{0, 0, 0, 2},
-			},
-			{
-				Side:         "top left inside",
-				KernelCentre: image.Pt(10, 10),
-				ExpectedClip: kernelClip{1, 0, 1, 0},
-			},
-			{
-				Side:         "top left outside",
-				KernelCentre: image.Pt(9, 9),
-				ExpectedClip: kernelClip{2, 0, 2, 0},
-			},
-			{
-				Side:         "bottom right inside",
-				KernelCentre: image.Pt(14, 14),
-				ExpectedClip: kernelClip{0, 1, 0, 1},
-			},
-			{
-				Side:         "bottom right outside",
-				KernelCentre: image.Pt(15, 15),
-				ExpectedClip: kernelClip{0, 2, 0, 2},
-			},
-		}
-
-		for _, c := range cases {
-			clip := kernel.clipToBounds(bounds, c.KernelCentre.X, c.KernelCentre.Y)
-			if expected, actual := c.ExpectedClip, clip; expected != actual {
-				t.Errorf("Expected clip at %s of bounds to be %+v but was %+v", c.Side, expected, actual)
-			}
-		}
-	})
 }
 
 func ExampleKernel_channelExtraction() {
@@ -511,6 +274,382 @@ func ExampleKernel_dilateErode() {
 	log.Printf("Output written to %s", outFilePath)
 
 	// Output:
+}
+
+func TestKernel(t *testing.T) {
+
+	t.Run("apply()", func(t *testing.T) {
+		img := randomImage(256, 256)
+
+		mutex := sync.Mutex{}
+		pixelsVisited := make(map[image.Point]struct{})
+
+		op := func(_ *image.NRGBA, x, y int) color.NRGBA {
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			pixelsVisited[image.Pt(x, y)] = struct{}{}
+			return img.NRGBAAt(x, y)
+		}
+
+		kernel := KernelWithRadius(0)
+		result := kernel.apply(img, op, runtime.NumCPU())
+
+		if expected, actual := img.Rect, result.Rect; expected.Dx() != actual.Dx() || expected.Dy() != actual.Dy() {
+			t.Errorf("Expected resulting image to be %dx%d but was %dx%d", expected.Dx(), expected.Dy(), actual.Dx(), actual.Dy())
+		}
+
+		differentPixelCount := 0
+		pixelsNotVisited := 0
+
+		for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+			for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+				if expected, actual := img.NRGBAAt(j, i), result.NRGBAAt(j, i); expected != actual {
+					differentPixelCount++
+				}
+				if _, ok := pixelsVisited[image.Pt(j, i)]; !ok {
+					pixelsNotVisited++
+				}
+			}
+		}
+
+		if differentPixelCount > 0 {
+			t.Errorf("Expected resulting image and input image to match but they differ at %d pixels", differentPixelCount)
+		}
+		if pixelsNotVisited > 0 {
+			t.Errorf("Expected kernel operation to have been applied to all pixels but %d were not visited", pixelsNotVisited)
+		}
+	})
+
+	t.Run("Avg()", func(t *testing.T) {
+		img := randomImage(3, 3)
+
+		t.Run("with uniform weights", func(t *testing.T) {
+			expectedAvg := [4]int32{}
+			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+					c := img.NRGBAAt(j, i)
+					expectedAvg[0] += int32(c.R)
+					expectedAvg[1] += int32(c.G)
+					expectedAvg[2] += int32(c.B)
+					expectedAvg[3] += int32(c.A)
+				}
+			}
+			expectedAvg[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
+
+			checkExpectedAvg := func(t *testing.T, kernel Kernel) {
+				t.Helper()
+
+				result := kernel.Avg(img, 1, 1)
+
+				if expected, actual := expectedAvg[0], int32(result.R); expected != actual {
+					t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedAvg[1], int32(result.G); expected != actual {
+					t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedAvg[2], int32(result.B); expected != actual {
+					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedAvg[3], int32(result.A); expected != actual {
+					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
+				}
+			}
+
+			t.Run("includes all pixels covered by kernel", func(t *testing.T) {
+				kernel := KernelWithRadius(1)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, 1)
+					}
+				}
+
+				checkExpectedAvg(t, kernel)
+			})
+
+			t.Run("clips kernel against edges of image", func(t *testing.T) {
+				kernel := KernelWithRadius(2)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, 1)
+					}
+				}
+
+				checkExpectedAvg(t, kernel)
+			})
+		})
+
+		t.Run("scales pixel values by kernel weights", func(t *testing.T) {
+			totalWeight := int32(0)
+			kernel := KernelWithRadius(1)
+			for i := 0; i < kernel.SideLength(); i++ {
+				for j := 0; j < kernel.SideLength(); j++ {
+					weight := int32(i + j)
+					totalWeight += weight
+					kernel.SetWeightUniform(j, i, weight)
+				}
+			}
+
+			avg := [4]int32{}
+			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					c := img.NRGBAAt(j, i)
+					avg[0] += int32(c.R) * (row + col)
+					avg[1] += int32(c.G) * (row + col)
+					avg[2] += int32(c.B) * (row + col)
+					avg[3] += int32(c.A) * (row + col)
+				}
+			}
+			avg[0] /= totalWeight
+			avg[1] /= totalWeight
+			avg[2] /= totalWeight
+			avg[3] /= totalWeight
+
+			result := kernel.Avg(img, 1, 1)
+
+			if expected, actual := avg[0], int32(result.R); expected != actual {
+				t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := avg[1], int32(result.G); expected != actual {
+				t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := avg[2], int32(result.B); expected != actual {
+				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := avg[3], int32(result.A); expected != actual {
+				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
+			}
+		})
+	})
+
+	t.Run("clipToBounds()", func(t *testing.T) {
+
+		// 5x5 image with origin at 10,10
+		bounds := image.Rect(10, 10, 15, 15)
+
+		// 3x3 kernel
+		kernel := KernelWithRadius(1)
+
+		cases := []struct {
+			Side         string
+			KernelCentre image.Point
+			ExpectedClip kernelClip
+		}{
+			{
+				Side:         "centre",
+				KernelCentre: image.Pt(12, 12),
+				ExpectedClip: kernelClip{0, 0, 0, 0},
+			},
+			{
+				Side:         "left inside",
+				KernelCentre: image.Pt(10, 12),
+				ExpectedClip: kernelClip{1, 0, 0, 0},
+			},
+			{
+				Side:         "left outside",
+				KernelCentre: image.Pt(9, 12),
+				ExpectedClip: kernelClip{2, 0, 0, 0},
+			},
+			{
+				Side:         "right inside",
+				KernelCentre: image.Pt(14, 11),
+				ExpectedClip: kernelClip{0, 1, 0, 0},
+			},
+			{
+				Side:         "right outside",
+				KernelCentre: image.Pt(15, 11),
+				ExpectedClip: kernelClip{0, 2, 0, 0},
+			},
+			{
+				Side:         "top inside",
+				KernelCentre: image.Pt(12, 10),
+				ExpectedClip: kernelClip{0, 0, 1, 0},
+			},
+			{
+				Side:         "top outside",
+				KernelCentre: image.Pt(12, 9),
+				ExpectedClip: kernelClip{0, 0, 2, 0},
+			},
+			{
+				Side:         "bottom inside",
+				KernelCentre: image.Pt(12, 14),
+				ExpectedClip: kernelClip{0, 0, 0, 1},
+			},
+			{
+				Side:         "bottom outside",
+				KernelCentre: image.Pt(12, 15),
+				ExpectedClip: kernelClip{0, 0, 0, 2},
+			},
+			{
+				Side:         "top left inside",
+				KernelCentre: image.Pt(10, 10),
+				ExpectedClip: kernelClip{1, 0, 1, 0},
+			},
+			{
+				Side:         "top left outside",
+				KernelCentre: image.Pt(9, 9),
+				ExpectedClip: kernelClip{2, 0, 2, 0},
+			},
+			{
+				Side:         "bottom right inside",
+				KernelCentre: image.Pt(14, 14),
+				ExpectedClip: kernelClip{0, 1, 0, 1},
+			},
+			{
+				Side:         "bottom right outside",
+				KernelCentre: image.Pt(15, 15),
+				ExpectedClip: kernelClip{0, 2, 0, 2},
+			},
+		}
+
+		for _, c := range cases {
+			clip := kernel.clipToBounds(bounds, c.KernelCentre.X, c.KernelCentre.Y)
+			if expected, actual := c.ExpectedClip, clip; expected != actual {
+				t.Errorf("Expected clip at %s of bounds to be %+v but was %+v", c.Side, expected, actual)
+			}
+		}
+	})
+
+	t.Run("Max()", func(t *testing.T) {
+		img := randomImage(3, 3)
+
+		t.Run("with uniform weights", func(t *testing.T) {
+
+			checkExpectedMax := func(t *testing.T, kernel Kernel, uniformWeight int) {
+				t.Helper()
+
+				expectedMax := [4]int32{
+					math.MinInt32,
+					math.MinInt32,
+					math.MinInt32,
+					math.MinInt32,
+				}
+				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
+					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
+						c := img.NRGBAAt(j, i)
+
+						if uniformWeight > 0 {
+							if int32(c.R) > expectedMax[0] {
+								expectedMax[0] = int32(c.R)
+							}
+							if int32(c.G) > expectedMax[1] {
+								expectedMax[1] = int32(c.G)
+							}
+							if int32(c.B) > expectedMax[2] {
+								expectedMax[2] = int32(c.B)
+							}
+							if int32(c.A) > expectedMax[3] {
+								expectedMax[3] = int32(c.A)
+							}
+						} else if uniformWeight < 0 {
+							if -int32(c.R) > -expectedMax[0] {
+								expectedMax[0] = int32(c.R)
+							}
+							if -int32(c.G) > -expectedMax[1] {
+								expectedMax[1] = int32(c.G)
+							}
+							if -int32(c.B) > -expectedMax[2] {
+								expectedMax[2] = int32(c.B)
+							}
+							if -int32(c.A) > -expectedMax[3] {
+								expectedMax[3] = int32(c.A)
+							}
+						}
+					}
+				}
+
+				result := kernel.Max(img, 1, 1)
+
+				if expected, actual := expectedMax[0], int32(result.R); expected != actual {
+					t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMax[1], int32(result.G); expected != actual {
+					t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMax[2], int32(result.B); expected != actual {
+					t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
+				}
+				if expected, actual := expectedMax[3], int32(result.A); expected != actual {
+					t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
+				}
+			}
+
+			t.Run("includes all pixels covered by kernel", func(t *testing.T) {
+				kernel := KernelWithRadius(1)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, 1)
+					}
+				}
+
+				checkExpectedMax(t, kernel, 1)
+			})
+
+			t.Run("clips kernel against edges of image", func(t *testing.T) {
+				kernel := KernelWithRadius(2)
+				for i := 0; i < kernel.SideLength(); i++ {
+					for j := 0; j < kernel.SideLength(); j++ {
+						kernel.SetWeightUniform(j, i, -1)
+					}
+				}
+
+				checkExpectedMax(t, kernel, -1)
+			})
+		})
+
+		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
+			weights := []int32{
+				0, 1, 0,
+				1, 0, 1,
+				0, 1, 0,
+			}
+
+			kernel := KernelWithRadius(1)
+			kernel.SetWeightsUniform(weights)
+
+			max := [4]int32{}
+			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					w := weights[int(row)*kernel.SideLength()+int(col)]
+					if w == 0 {
+						continue
+					}
+
+					c := img.NRGBAAt(j, i)
+					if int32(c.R) > max[0] {
+						max[0] = int32(c.R)
+					}
+					if int32(c.G) > max[1] {
+						max[1] = int32(c.G)
+					}
+					if int32(c.B) > max[2] {
+						max[2] = int32(c.B)
+					}
+					if int32(c.A) > max[3] {
+						max[3] = int32(c.A)
+					}
+				}
+			}
+
+			result := kernel.Max(img, 1, 1)
+
+			if expected, actual := max[0], int32(result.R); expected != actual {
+				t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := max[1], int32(result.G); expected != actual {
+				t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := max[2], int32(result.B); expected != actual {
+				t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
+			}
+			if expected, actual := max[3], int32(result.A); expected != actual {
+				t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
+			}
+		})
+	})
 }
 
 func randomImage(w, h int) *image.NRGBA {
