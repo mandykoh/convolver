@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"path"
 	"runtime"
 	"sync"
 	"testing"
@@ -282,16 +283,16 @@ func TestKernel(t *testing.T) {
 	})
 }
 
-func TestColourSeparation(t *testing.T) {
+func ExampleKernel_channelExtraction() {
 	imgFile, err := os.Open("test-images/avocado.png")
 	if err != nil {
-		t.Fatalf("Error opening input image: %v", err)
+		log.Panicf("Error opening input image: %v", err)
 	}
 	defer imgFile.Close()
 
 	img, err := png.Decode(imgFile)
 	if err != nil {
-		t.Fatalf("Error decoding PNG: %v", err)
+		log.Panicf("Error decoding PNG: %v", err)
 	}
 
 	var inputImg *image.NRGBA
@@ -305,34 +306,45 @@ func TestColourSeparation(t *testing.T) {
 	kernel.SetWeight(0, 0, 0, 0, 1, 1)
 
 	startTime := time.Now()
-	result := inputImg
-	result = kernel.ApplyAvg(result, 4)
+	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
 	endTime := time.Now()
 
-	log.Printf("Finished in %v", endTime.Sub(startTime))
+	log.Printf("Channel extraction applied in %v", endTime.Sub(startTime))
 
-	outFile, err := os.Create("output.png")
+	_ = os.Mkdir("example-output", 0x700)
+	outFilePath := path.Join("example-output", "example-channel-extraction.png")
+	outFile, err := os.Create(outFilePath)
 	if err != nil {
-		log.Fatalf("Error creating output file: %v", err)
+		log.Panicf("Error creating output file: %v", err)
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, result)
 	if err != nil {
-		log.Fatalf("Error encoding output image: %v", err)
+		log.Panicf("Error encoding output image: %v", err)
 	}
+
+	err = outFile.Close()
+	if err != nil {
+		log.Panicf("Error closing output file: %v", err)
+	}
+	log.Printf("Output written to %s", outFilePath)
+
+	// Output:
 }
 
-func TestGaussianBlur(t *testing.T) {
+func ExampleKernel_gaussianBlur() {
+	const numPasses = 8
+
 	imgFile, err := os.Open("test-images/avocado.png")
 	if err != nil {
-		t.Fatalf("Error opening input image: %v", err)
+		log.Panicf("Error opening input image: %v", err)
 	}
 	defer imgFile.Close()
 
 	img, err := png.Decode(imgFile)
 	if err != nil {
-		t.Fatalf("Error decoding PNG: %v", err)
+		log.Panicf("Error decoding PNG: %v", err)
 	}
 
 	var inputImg *image.NRGBA
@@ -360,35 +372,45 @@ func TestGaussianBlur(t *testing.T) {
 
 	startTime := time.Now()
 	result := inputImg
-	for i := 0; i < 8; i++ {
-		result = kernel.ApplyAvg(result, 4)
+	for i := 0; i < numPasses; i++ {
+		result = kernel.ApplyAvg(result, runtime.NumCPU())
 	}
 	endTime := time.Now()
 
-	log.Printf("Finished in %v", endTime.Sub(startTime))
+	log.Printf("Gaussian blur applied in %v", endTime.Sub(startTime))
 
-	outFile, err := os.Create("output.png")
+	_ = os.Mkdir("example-output", 0x700)
+	outFilePath := path.Join("example-output", "example-gaussian-blur.png")
+	outFile, err := os.Create(outFilePath)
 	if err != nil {
-		log.Fatalf("Error creating output file: %v", err)
+		log.Panicf("Error creating output file: %v", err)
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, result)
 	if err != nil {
-		log.Fatalf("Error encoding output image: %v", err)
+		log.Panicf("Error encoding output image: %v", err)
 	}
+
+	err = outFile.Close()
+	if err != nil {
+		log.Panicf("Error closing output file: %v", err)
+	}
+	log.Printf("Output written to %s", outFilePath)
+
+	// Output:
 }
 
-func TestSharpen(t *testing.T) {
+func ExampleKernel_sharpen() {
 	imgFile, err := os.Open("test-images/avocado.png")
 	if err != nil {
-		t.Fatalf("Error opening input image: %v", err)
+		log.Panicf("Error opening input image: %v", err)
 	}
 	defer imgFile.Close()
 
 	img, err := png.Decode(imgFile)
 	if err != nil {
-		t.Fatalf("Error decoding PNG: %v", err)
+		log.Panicf("Error decoding PNG: %v", err)
 	}
 
 	var inputImg *image.NRGBA
@@ -413,33 +435,45 @@ func TestSharpen(t *testing.T) {
 	}
 
 	startTime := time.Now()
-	result := kernel.ApplyAvg(inputImg, 4)
+	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
 	endTime := time.Now()
 
-	log.Printf("Finished in %v", endTime.Sub(startTime))
+	log.Printf("Sharpen applied in %v", endTime.Sub(startTime))
 
-	outFile, err := os.Create("output.png")
+	_ = os.Mkdir("example-output", 0x700)
+	outFilePath := path.Join("example-output", "example-sharpen.png")
+	outFile, err := os.Create(outFilePath)
 	if err != nil {
-		log.Fatalf("Error creating output file: %v", err)
+		log.Panicf("Error creating output file: %v", err)
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, result)
 	if err != nil {
-		log.Fatalf("Error encoding output image: %v", err)
+		log.Panicf("Error encoding output image: %v", err)
 	}
+
+	err = outFile.Close()
+	if err != nil {
+		log.Panicf("Error closing output file: %v", err)
+	}
+	log.Printf("Output written to %s", outFilePath)
+
+	// Output:
 }
 
-func TestDilateErode(t *testing.T) {
+func ExampleKernel_dilateErode() {
+	const numPasses = 5
+
 	imgFile, err := os.Open("test-images/convolver-alpha-1024.png")
 	if err != nil {
-		t.Fatalf("Error opening input image: %v", err)
+		log.Panicf("Error opening input image: %v", err)
 	}
 	defer imgFile.Close()
 
 	img, err := png.Decode(imgFile)
 	if err != nil {
-		t.Fatalf("Error decoding PNG: %v", err)
+		log.Panicf("Error decoding PNG: %v", err)
 	}
 
 	var inputImg *image.NRGBA
@@ -467,22 +501,36 @@ func TestDilateErode(t *testing.T) {
 
 	startTime := time.Now()
 	result := inputImg
-	result = kernel.ApplyMax(result, 4)
-	result = kernel.ApplyMin(result, 4)
+	for i := 0; i < numPasses; i++ {
+		result = kernel.ApplyMax(result, runtime.NumCPU())
+	}
+	for i := 0; i < numPasses; i++ {
+		result = kernel.ApplyMin(result, runtime.NumCPU())
+	}
 	endTime := time.Now()
 
-	log.Printf("Finished in %v", endTime.Sub(startTime))
+	log.Printf("Dilate-erode applied in %v", endTime.Sub(startTime))
 
-	outFile, err := os.Create("output.png")
+	_ = os.Mkdir("example-output", 0x700)
+	outFilePath := path.Join("example-output", "example-dilate-erode.png")
+	outFile, err := os.Create(outFilePath)
 	if err != nil {
-		log.Fatalf("Error creating output file: %v", err)
+		log.Panicf("Error creating output file: %v", err)
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, result)
 	if err != nil {
-		log.Fatalf("Error encoding output image: %v", err)
+		log.Panicf("Error encoding output image: %v", err)
 	}
+
+	err = outFile.Close()
+	if err != nil {
+		log.Panicf("Error closing output file: %v", err)
+	}
+	log.Printf("Output written to %s", outFilePath)
+
+	// Output:
 }
 
 func randomImage(w, h int) *image.NRGBA {
