@@ -29,12 +29,7 @@ func BenchmarkParallelisation(b *testing.B) {
 	}
 
 	kernel := KernelWithRadius(2)
-	for i := 0; i < kernel.SideLength(); i++ {
-		for j := 0; j < kernel.SideLength(); j++ {
-			offset := i*kernel.SideLength() + j
-			kernel.SetWeightRGBA(j, i, weights[offset])
-		}
-	}
+	kernel.SetWeightsUniform(weights)
 
 	for threadCount := 1; threadCount <= runtime.NumCPU(); threadCount++ {
 		b.Run(fmt.Sprintf("with parallelism %d", threadCount), func(b *testing.B) {
@@ -132,7 +127,7 @@ func TestKernel(t *testing.T) {
 				kernel := KernelWithRadius(1)
 				for i := 0; i < kernel.SideLength(); i++ {
 					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightRGBA(j, i, 1)
+						kernel.SetWeightUniform(j, i, 1)
 					}
 				}
 
@@ -143,7 +138,7 @@ func TestKernel(t *testing.T) {
 				kernel := KernelWithRadius(2)
 				for i := 0; i < kernel.SideLength(); i++ {
 					for j := 0; j < kernel.SideLength(); j++ {
-						kernel.SetWeightRGBA(j, i, 1)
+						kernel.SetWeightUniform(j, i, 1)
 					}
 				}
 
@@ -158,7 +153,7 @@ func TestKernel(t *testing.T) {
 				for j := 0; j < kernel.SideLength(); j++ {
 					weight := int32(i + j)
 					totalWeight += weight
-					kernel.SetWeightRGBA(j, i, weight)
+					kernel.SetWeightUniform(j, i, weight)
 				}
 			}
 
@@ -303,7 +298,7 @@ func ExampleKernel_channelExtraction() {
 	}
 
 	kernel := KernelWithRadius(0)
-	kernel.SetWeight(0, 0, 0, 0, 1, 1)
+	kernel.SetWeightRGBA(0, 0, 0, 0, 1, 1)
 
 	startTime := time.Now()
 	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
@@ -354,8 +349,6 @@ func ExampleKernel_gaussianBlur() {
 		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
 	}
 
-	kernel := KernelWithRadius(2)
-
 	weights := []int32{
 		1, 4, 6, 4, 1,
 		4, 16, 24, 16, 4,
@@ -363,12 +356,9 @@ func ExampleKernel_gaussianBlur() {
 		4, 16, 24, 16, 4,
 		1, 4, 6, 4, 1,
 	}
-	for i := 0; i < kernel.SideLength(); i++ {
-		for j := 0; j < kernel.SideLength(); j++ {
-			offset := i*kernel.SideLength() + j
-			kernel.SetWeightRGBA(j, i, weights[offset])
-		}
-	}
+
+	kernel := KernelWithRadius(2)
+	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
 	result := inputImg
@@ -420,19 +410,14 @@ func ExampleKernel_sharpen() {
 		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
 	}
 
-	kernel := KernelWithRadius(1)
-
 	weights := []int32{
 		0, -1, 0,
 		-1, 5, -1,
 		0, -1, 0,
 	}
-	for i := 0; i < kernel.SideLength(); i++ {
-		for j := 0; j < kernel.SideLength(); j++ {
-			offset := i*kernel.SideLength() + j
-			kernel.SetWeightRGBA(j, i, weights[offset])
-		}
-	}
+
+	kernel := KernelWithRadius(1)
+	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
 	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
@@ -483,8 +468,6 @@ func ExampleKernel_dilateErode() {
 		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
 	}
 
-	kernel := KernelWithRadius(2)
-
 	weights := []int32{
 		0, 1, 1, 1, 0,
 		1, 1, 1, 1, 1,
@@ -492,12 +475,9 @@ func ExampleKernel_dilateErode() {
 		1, 1, 1, 1, 1,
 		0, 1, 1, 1, 0,
 	}
-	for i := 0; i < kernel.SideLength(); i++ {
-		for j := 0; j < kernel.SideLength(); j++ {
-			offset := i*kernel.SideLength() + j
-			kernel.SetWeightRGBA(j, i, weights[offset])
-		}
-	}
+
+	kernel := KernelWithRadius(2)
+	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
 	result := inputImg

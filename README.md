@@ -33,7 +33,7 @@ Using the weights, we can define a kernel to extract individual colour channels.
 ```go
 kernel := convolver.KernelWithRadius(0)
 x, y, r, g, b, a := 0, 0, 0, 0, 1, 1
-kernel.SetWeight(x, y, r, g, b, a)
+kernel.SetWeightRGBA(x, y, r, g, b, a)
 ```
 
 Once defined, a kernel can be applied using a given aggregation function (here, averaging, although it doesn’t really matter for a 1x1 kernel):
@@ -51,7 +51,7 @@ The result of extracting only the blue and alpha channels looks like this:
 
 ### Gaussian blur
 
-The following specifies a 5x5 kernel that expresses a Gaussian blur by using the `SetWeightRGBA` method, using uniform weights for each of the R, G, B, and alpha channels:
+The following specifies a 5x5 kernel that expresses a Gaussian blur by using the `SetWeightsUniform` method, using a single uniform weight for each of the R, G, B, and alpha channels:
 
 ```go
 weights := []int32{
@@ -63,12 +63,7 @@ weights := []int32{
 }
 
 kernel := convolver.KernelWithRadius(2)
-for i := 0; i < kernel.SideLength(); i++ {
-    for j := 0; j < kernel.SideLength(); j++ {
-        offset := i*kernel.SideLength() + j
-        kernel.SetWeightRGBA(j, i, weights[offset])
-    }
-}
+kernel.SetWeightsUniform(weights)
 ```
 
 This kernel can be applied to an image with averaging as the aggregation operator like this:
@@ -108,12 +103,7 @@ weights := []int32{
 }
 
 kernel := convolver.KernelWithRadius(1)
-for i := 0; i < kernel.SideLength(); i++ {
-    for j := 0; j < kernel.SideLength(); j++ {
-        offset := i*kernel.SideLength() + j
-        kernel.SetWeightRGBA(j, i, weights[offset])
-    }
-}
+kernel.SetWeightsUniform(weights)
 ```
 
 Applying this kernel (still using averaging) can be done in the same way as before:
@@ -143,12 +133,7 @@ weights := []int32{
 }
 
 kernel := convolver.KernelWithRadius(2)
-for i := 0; i < kernel.SideLength(); i++ {
-    for j := 0; j < kernel.SideLength(); j++ {
-        offset := i*kernel.SideLength() + j
-        kernel.SetWeightRGBA(j, i, weights[offset])
-    }
-}
+kernel.SetWeightsUniform(weights)
 ```
 
 However, instead of applying this using the `Avg` operator (which would yield something like a simple blur), we can apply it using a `Max` operator:

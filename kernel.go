@@ -172,7 +172,7 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 	return min.toNRGBA()
 }
 
-func (k *Kernel) SetWeight(x, y int, r, g, b, a int32) {
+func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a int32) {
 	k.weights[y*k.sideLength+x] = kernelWeight{
 		R: r,
 		G: g,
@@ -181,8 +181,27 @@ func (k *Kernel) SetWeight(x, y int, r, g, b, a int32) {
 	}
 }
 
-func (k *Kernel) SetWeightRGBA(x, y int, weight int32) {
-	k.SetWeight(x, y, weight, weight, weight, weight)
+func (k *Kernel) SetWeightUniform(x, y int, weight int32) {
+	k.SetWeightRGBA(x, y, weight, weight, weight, weight)
+}
+
+func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
+	for i := 0; i < k.SideLength(); i++ {
+		for j := 0; j < k.SideLength(); j++ {
+			offset := i*k.SideLength() + j
+			w := weights[offset]
+			k.SetWeightRGBA(j, i, w[0], w[1], w[2], w[3])
+		}
+	}
+}
+
+func (k *Kernel) SetWeightsUniform(weights []int32) {
+	for i := 0; i < k.SideLength(); i++ {
+		for j := 0; j < k.SideLength(); j++ {
+			offset := i*k.SideLength() + j
+			k.SetWeightUniform(j, i, weights[offset])
+		}
+	}
 }
 
 func (k *Kernel) SideLength() int {
