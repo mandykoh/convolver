@@ -184,12 +184,9 @@ func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
 
-	for i := 0; i < k.SideLength(); i++ {
-		for j := 0; j < k.SideLength(); j++ {
-			offset := i*k.SideLength() + j
-			w := weights[offset]
-			k.SetWeightRGBA(j, i, w[0], w[1], w[2], w[3])
-		}
+	for i := 0; i < len(weights); i++ {
+		w := weights[i]
+		k.weights[i] = kernelWeight{R: w[0], G: w[1], B: w[2], A: w[3]}
 	}
 }
 
@@ -198,11 +195,9 @@ func (k *Kernel) SetWeightsUniform(weights []int32) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
 
-	for i := 0; i < k.SideLength(); i++ {
-		for j := 0; j < k.SideLength(); j++ {
-			offset := i*k.SideLength() + j
-			k.SetWeightUniform(j, i, weights[offset])
-		}
+	for i := 0; i < len(weights); i++ {
+		w := weights[i]
+		k.weights[i] = kernelWeight{R: w, G: w, B: w, A: w}
 	}
 }
 
