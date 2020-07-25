@@ -117,6 +117,32 @@ And the result looks like this:
 ![Example of applying a sharpen filter to an image of an avocado](doc-images/example-sharpen-1.png)
 
 
+### Edge detection
+
+An edge detection kernel might look like this. Note that—unlike sharpening—the weights around the edges sum to zero with the weight in the centre, which means that in areas without a contrasting edge, the output will be zero:
+
+```go
+weights := []int32{
+    -1, -1, -1,
+    -1, 8, -1,
+    -1, -1, -1,
+}
+
+kernel := convolver.KernelWithRadius(1)
+kernel.SetWeightsUniform(weights)
+```
+
+When applied:
+
+```go
+resultImg := kernel.ApplyAvg(inputImg, parallelism)
+```
+
+The result looks like this:
+
+![Example of applying an edge detection filter to an image of an avocado](doc-images/example-edge-detect-1.png)
+
+
 ### Dilation
 
 Convolution can also be performed using aggregation functions other than a weighted average.
