@@ -112,6 +112,8 @@ func (k *Kernel) clipToBounds(bounds image.Rectangle, x, y int) kernelClip {
 }
 
 func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
+	clip := k.clipToBounds(img.Rect, x, y)
+
 	max := kernelWeight{
 		math.MinInt32,
 		math.MinInt32,
@@ -119,8 +121,8 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 		math.MinInt32,
 	}
 
-	for s := 0; s < k.sideLength; s++ {
-		for t := 0; t < k.sideLength; t++ {
+	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
+		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
