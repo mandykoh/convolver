@@ -10,6 +10,8 @@
 
 Convolution operations support parallel processing out of the box, allowing the degree of parallelism to be specified for mostly-linear acceleration on multi-core systems.
 
+`convolver` currently assumes that image data is sRGB encoded.
+
 See the [API documentation](https://godoc.org/github.com/mandykoh/convolver) for more details.
 
 This software is made available under an [MIT license](LICENSE).
