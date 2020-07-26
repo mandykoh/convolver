@@ -9,11 +9,15 @@ import (
 	"sync"
 )
 
-var sRGB8ToLinear [256]float64
+var sRGB8ToLinearLUT [256]float64
+var linearToSRGB8LUT [512]uint8
 
 func init() {
 	for i := 0; i < 256; i++ {
-		sRGB8ToLinear[i] = convertSRGB8ToLinear(uint8(i))
+		sRGB8ToLinearLUT[i] = convertSRGB8ToLinear(uint8(i))
+	}
+	for i := 0; i < 512; i++ {
+		linearToSRGB8LUT[i] = convertLinearToSRGB8(float64(i) / 511)
 	}
 }
 
@@ -78,10 +82,10 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.A += weight.A
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += sRGB8ToLinear[c.R] * weight.R
-			sum.G += sRGB8ToLinear[c.G] * weight.G
-			sum.B += sRGB8ToLinear[c.B] * weight.B
-			sum.A += sRGB8ToLinear[c.A] * weight.A
+			sum.R += lookupSRGB8ToLinear(c.R) * weight.R
+			sum.G += lookupSRGB8ToLinear(c.G) * weight.G
+			sum.B += lookupSRGB8ToLinear(c.B) * weight.B
+			sum.A += lookupSRGB8ToLinear(c.A) * weight.A
 		}
 	}
 
@@ -130,16 +134,16 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := sRGB8ToLinear[c.R]; v*weight.R > max.R*weight.R {
+			if v := lookupSRGB8ToLinear(c.R); v*weight.R > max.R*weight.R {
 				max.R = v
 			}
-			if v := sRGB8ToLinear[c.G]; v*weight.G > max.G*weight.G {
+			if v := lookupSRGB8ToLinear(c.G); v*weight.G > max.G*weight.G {
 				max.G = v
 			}
-			if v := sRGB8ToLinear[c.B]; v*weight.B > max.B*weight.B {
+			if v := lookupSRGB8ToLinear(c.B); v*weight.B > max.B*weight.B {
 				max.B = v
 			}
-			if v := sRGB8ToLinear[c.A]; v*weight.A > max.A*weight.A {
+			if v := lookupSRGB8ToLinear(c.A); v*weight.A > max.A*weight.A {
 				max.A = v
 			}
 		}
@@ -158,16 +162,16 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := sRGB8ToLinear[c.R]; v*weight.R < min.R*weight.R {
+			if v := lookupSRGB8ToLinear(c.R); v*weight.R < min.R*weight.R {
 				min.R = v
 			}
-			if v := sRGB8ToLinear[c.G]; v*weight.G < min.G*weight.G {
+			if v := lookupSRGB8ToLinear(c.G); v*weight.G < min.G*weight.G {
 				min.G = v
 			}
-			if v := sRGB8ToLinear[c.B]; v*weight.B < min.B*weight.B {
+			if v := lookupSRGB8ToLinear(c.B); v*weight.B < min.B*weight.B {
 				min.B = v
 			}
-			if v := sRGB8ToLinear[c.A]; v*weight.A < min.A*weight.A {
+			if v := lookupSRGB8ToLinear(c.A); v*weight.A < min.A*weight.A {
 				min.A = v
 			}
 		}
@@ -241,10 +245,10 @@ type kernelWeight struct {
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
 	return color.NRGBA{
-		R: convertLinearToSRGB8(kw.R),
-		G: convertLinearToSRGB8(kw.G),
-		B: convertLinearToSRGB8(kw.B),
-		A: convertLinearToSRGB8(kw.A),
+		R: lookupLinearToSRGB8(kw.R),
+		G: lookupLinearToSRGB8(kw.G),
+		B: lookupLinearToSRGB8(kw.B),
+		A: lookupLinearToSRGB8(kw.A),
 	}
 }
 
@@ -275,4 +279,13 @@ func convertSRGB8ToLinear(v uint8) float64 {
 		return vNormalised / 12.92
 	}
 	return math.Pow((vNormalised+0.055)/1.055, 2.4)
+}
+
+func lookupLinearToSRGB8(v float64) uint8 {
+	clipped := math.Min(math.Max(v, 0), 1)
+	return linearToSRGB8LUT[int(math.Round(clipped*511))]
+}
+
+func lookupSRGB8ToLinear(v uint8) float64 {
+	return sRGB8ToLinearLUT[v]
 }

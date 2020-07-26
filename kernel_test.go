@@ -311,39 +311,39 @@ func TestKernel(t *testing.T) {
 			checkExpectedMax := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				expectedMax := [4]int32{-1, -1, -1, -1}
+				expectedMax := [4]float64{}
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 						c := img.NRGBAAt(j, i)
 
-						if int32(c.R) > expectedMax[0] {
-							expectedMax[0] = int32(c.R)
+						if v := convertSRGB8ToLinear(c.R); v > expectedMax[0] {
+							expectedMax[0] = v
 						}
-						if int32(c.G) > expectedMax[1] {
-							expectedMax[1] = int32(c.G)
+						if v := convertSRGB8ToLinear(c.G); v > expectedMax[1] {
+							expectedMax[1] = v
 						}
-						if int32(c.B) > expectedMax[2] {
-							expectedMax[2] = int32(c.B)
+						if v := convertSRGB8ToLinear(c.B); v > expectedMax[2] {
+							expectedMax[2] = v
 						}
-						if int32(c.A) > expectedMax[3] {
-							expectedMax[3] = int32(c.A)
+						if v := convertSRGB8ToLinear(c.A); v > expectedMax[3] {
+							expectedMax[3] = v
 						}
 					}
 				}
 
 				result := kernel.Max(img, 1, 1)
 
-				if expected, actual := expectedMax[0], int32(result.R); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedMax[0]), result.R; expected != actual {
 					t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMax[1], int32(result.G); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedMax[1]), result.G; expected != actual {
 					t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMax[2], int32(result.B); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedMax[2]), result.B; expected != actual {
 					t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMax[3], int32(result.A); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedMax[3]), result.A; expected != actual {
 					t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -385,7 +385,7 @@ func TestKernel(t *testing.T) {
 			kernel := KernelWithRadius(1)
 			kernel.SetWeightsUniform(weights)
 
-			max := [4]int32{}
+			max := [4]float64{}
 
 			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
@@ -395,33 +395,33 @@ func TestKernel(t *testing.T) {
 					}
 
 					c := img.NRGBAAt(j, i)
-					if int32(c.R) > max[0] {
-						max[0] = int32(c.R)
+					if v := convertSRGB8ToLinear(c.R); v > max[0] {
+						max[0] = v
 					}
-					if int32(c.G) > max[1] {
-						max[1] = int32(c.G)
+					if v := convertSRGB8ToLinear(c.G); v > max[1] {
+						max[1] = v
 					}
-					if int32(c.B) > max[2] {
-						max[2] = int32(c.B)
+					if v := convertSRGB8ToLinear(c.B); v > max[2] {
+						max[2] = v
 					}
-					if int32(c.A) > max[3] {
-						max[3] = int32(c.A)
+					if v := convertSRGB8ToLinear(c.A); v > max[3] {
+						max[3] = v
 					}
 				}
 			}
 
 			result := kernel.Max(img, 1, 1)
 
-			if expected, actual := max[0], int32(result.R); expected != actual {
+			if expected, actual := convertLinearToSRGB8(max[0]), result.R; expected != actual {
 				t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := max[1], int32(result.G); expected != actual {
+			if expected, actual := convertLinearToSRGB8(max[1]), result.G; expected != actual {
 				t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := max[2], int32(result.B); expected != actual {
+			if expected, actual := convertLinearToSRGB8(max[2]), result.B; expected != actual {
 				t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := max[3], int32(result.A); expected != actual {
+			if expected, actual := convertLinearToSRGB8(max[3]), result.A; expected != actual {
 				t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
@@ -435,39 +435,39 @@ func TestKernel(t *testing.T) {
 			checkExpectedMin := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				expectedMin := [4]int32{255, 255, 255, 255}
+				expectedMin := [4]float64{255, 255, 255, 255}
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 						c := img.NRGBAAt(j, i)
 
-						if int32(c.R) < expectedMin[0] {
-							expectedMin[0] = int32(c.R)
+						if v := convertSRGB8ToLinear(c.R); v < expectedMin[0] {
+							expectedMin[0] = v
 						}
-						if int32(c.G) < expectedMin[1] {
-							expectedMin[1] = int32(c.G)
+						if v := convertSRGB8ToLinear(c.G); v < expectedMin[1] {
+							expectedMin[1] = v
 						}
-						if int32(c.B) < expectedMin[2] {
-							expectedMin[2] = int32(c.B)
+						if v := convertSRGB8ToLinear(c.B); v < expectedMin[2] {
+							expectedMin[2] = v
 						}
-						if int32(c.A) < expectedMin[3] {
-							expectedMin[3] = int32(c.A)
+						if v := convertSRGB8ToLinear(c.A); v < expectedMin[3] {
+							expectedMin[3] = v
 						}
 					}
 				}
 
 				result := kernel.Min(img, 1, 1)
 
-				if expected, actual := expectedMin[0], int32(result.R); expected != actual {
+				if expected, actual := lookupLinearToSRGB8(expectedMin[0]), result.R; expected != actual {
 					t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMin[1], int32(result.G); expected != actual {
+				if expected, actual := lookupLinearToSRGB8(expectedMin[1]), result.G; expected != actual {
 					t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMin[2], int32(result.B); expected != actual {
+				if expected, actual := lookupLinearToSRGB8(expectedMin[2]), result.B; expected != actual {
 					t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedMin[3], int32(result.A); expected != actual {
+				if expected, actual := lookupLinearToSRGB8(expectedMin[3]), result.A; expected != actual {
 					t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -505,7 +505,7 @@ func TestKernel(t *testing.T) {
 			kernel := KernelWithRadius(1)
 			kernel.SetWeightsUniform(weights)
 
-			min := [4]int32{255, 255, 255, 255}
+			min := [4]float64{255, 255, 255, 255}
 
 			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
@@ -515,33 +515,33 @@ func TestKernel(t *testing.T) {
 					}
 
 					c := img.NRGBAAt(j, i)
-					if int32(c.R) < min[0] {
-						min[0] = int32(c.R)
+					if v := convertSRGB8ToLinear(c.R); v < min[0] {
+						min[0] = v
 					}
-					if int32(c.G) < min[1] {
-						min[1] = int32(c.G)
+					if v := convertSRGB8ToLinear(c.G); v < min[1] {
+						min[1] = v
 					}
-					if int32(c.B) < min[2] {
-						min[2] = int32(c.B)
+					if v := convertSRGB8ToLinear(c.B); v < min[2] {
+						min[2] = v
 					}
-					if int32(c.A) < min[3] {
-						min[3] = int32(c.A)
+					if v := convertSRGB8ToLinear(c.A); v < min[3] {
+						min[3] = v
 					}
 				}
 			}
 
 			result := kernel.Min(img, 1, 1)
 
-			if expected, actual := min[0], int32(result.R); expected != actual {
+			if expected, actual := lookupLinearToSRGB8(min[0]), result.R; expected != actual {
 				t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := min[1], int32(result.G); expected != actual {
+			if expected, actual := lookupLinearToSRGB8(min[1]), result.G; expected != actual {
 				t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := min[2], int32(result.B); expected != actual {
+			if expected, actual := lookupLinearToSRGB8(min[2]), result.B; expected != actual {
 				t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := min[3], int32(result.A); expected != actual {
+			if expected, actual := lookupLinearToSRGB8(min[3]), result.A; expected != actual {
 				t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
