@@ -2,8 +2,6 @@ package convolver_test
 
 import (
 	"github.com/mandykoh/convolver"
-	"image"
-	"image/draw"
 	"image/png"
 	"log"
 	"os"
@@ -24,18 +22,11 @@ func ExampleKernel_channelExtraction() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	var inputImg *image.NRGBA
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		inputImg = image.NewNRGBA(img.Bounds())
-		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
-	}
-
 	kernel := convolver.KernelWithRadius(0)
 	kernel.SetWeightRGBA(0, 0, 0, 0, 1, 1)
 
 	startTime := time.Now()
-	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
+	result := kernel.ApplyAvg(img, runtime.NumCPU())
 	endTime := time.Now()
 
 	log.Printf("Channel extraction applied in %v", endTime.Sub(startTime))
@@ -76,13 +67,6 @@ func ExampleKernel_dilateErode() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	var inputImg *image.NRGBA
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		inputImg = image.NewNRGBA(img.Bounds())
-		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
-	}
-
 	weights := []int32{
 		0, 1, 1, 1, 0,
 		1, 1, 1, 1, 1,
@@ -95,7 +79,7 @@ func ExampleKernel_dilateErode() {
 	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
-	result := inputImg
+	result := img
 	for i := 0; i < numPasses; i++ {
 		result = kernel.ApplyMax(result, runtime.NumCPU())
 	}
@@ -140,13 +124,6 @@ func ExampleKernel_edgeDetect() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	var inputImg *image.NRGBA
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		inputImg = image.NewNRGBA(img.Bounds())
-		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
-	}
-
 	weights := []int32{
 		-1, -1, -1,
 		-1, 8, -1,
@@ -157,7 +134,7 @@ func ExampleKernel_edgeDetect() {
 	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
-	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
+	result := kernel.ApplyAvg(img, runtime.NumCPU())
 	endTime := time.Now()
 
 	log.Printf("Edge detection applied in %v", endTime.Sub(startTime))
@@ -198,13 +175,6 @@ func ExampleKernel_gaussianBlur() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	var inputImg *image.NRGBA
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		inputImg = image.NewNRGBA(img.Bounds())
-		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
-	}
-
 	weights := []int32{
 		1, 4, 6, 4, 1,
 		4, 16, 24, 16, 4,
@@ -217,7 +187,7 @@ func ExampleKernel_gaussianBlur() {
 	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
-	result := inputImg
+	result := img
 	for i := 0; i < numPasses; i++ {
 		result = kernel.ApplyAvg(result, runtime.NumCPU())
 	}
@@ -259,13 +229,6 @@ func ExampleKernel_sharpen() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	var inputImg *image.NRGBA
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		inputImg = image.NewNRGBA(img.Bounds())
-		draw.Draw(inputImg, inputImg.Bounds(), img, image.Point{}, draw.Src)
-	}
-
 	weights := []int32{
 		0, -1, 0,
 		-1, 5, -1,
@@ -276,7 +239,7 @@ func ExampleKernel_sharpen() {
 	kernel.SetWeightsUniform(weights)
 
 	startTime := time.Now()
-	result := kernel.ApplyAvg(inputImg, runtime.NumCPU())
+	result := kernel.ApplyAvg(img, runtime.NumCPU())
 	endTime := time.Now()
 
 	log.Printf("Sharpen applied in %v", endTime.Sub(startTime))

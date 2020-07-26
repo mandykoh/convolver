@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"sync"
 )
 
@@ -15,16 +16,16 @@ type Kernel struct {
 	weights    []kernelWeight
 }
 
-func (k *Kernel) ApplyMax(img *image.NRGBA, parallelism int) *image.NRGBA {
-	return k.apply(img, k.Max, parallelism)
+func (k *Kernel) ApplyMax(img image.Image, parallelism int) *image.NRGBA {
+	return k.apply(convertToNRGBA(img), k.Max, parallelism)
 }
 
-func (k *Kernel) ApplyMin(img *image.NRGBA, parallelism int) *image.NRGBA {
-	return k.apply(img, k.Min, parallelism)
+func (k *Kernel) ApplyMin(img image.Image, parallelism int) *image.NRGBA {
+	return k.apply(convertToNRGBA(img), k.Min, parallelism)
 }
 
-func (k *Kernel) ApplyAvg(img *image.NRGBA, parallelism int) *image.NRGBA {
-	return k.apply(img, k.Avg, parallelism)
+func (k *Kernel) ApplyAvg(img image.Image, parallelism int) *image.NRGBA {
+	return k.apply(convertToNRGBA(img), k.Avg, parallelism)
 }
 
 func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGBA {
@@ -246,4 +247,15 @@ func clip255(v int32) uint8 {
 		return 255
 	}
 	return uint8(v)
+}
+
+func convertToNRGBA(img image.Image) *image.NRGBA {
+	inputImg, ok := img.(*image.NRGBA)
+	if !ok {
+		bounds := img.Bounds()
+		inputImg = image.NewNRGBA(bounds)
+		draw.Draw(inputImg, bounds, img, bounds.Min, draw.Src)
+	}
+
+	return inputImg
 }
