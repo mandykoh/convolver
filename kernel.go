@@ -5,8 +5,17 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"math"
 	"sync"
 )
+
+var sRGB8ToLinear [256]float64
+
+func init() {
+	for i := 0; i < 256; i++ {
+		sRGB8ToLinear[i] = convertSRGB8ToLinear(uint8(i))
+	}
+}
 
 type opFunc func(img *image.NRGBA, x, y int) color.NRGBA
 
@@ -17,15 +26,15 @@ type Kernel struct {
 }
 
 func (k *Kernel) ApplyMax(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertToNRGBA(img), k.Max, parallelism)
+	return k.apply(convertImageToNRGBA(img), k.Max, parallelism)
 }
 
 func (k *Kernel) ApplyMin(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertToNRGBA(img), k.Min, parallelism)
+	return k.apply(convertImageToNRGBA(img), k.Min, parallelism)
 }
 
 func (k *Kernel) ApplyAvg(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertToNRGBA(img), k.Avg, parallelism)
+	return k.apply(convertImageToNRGBA(img), k.Avg, parallelism)
 }
 
 func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGBA {
@@ -69,10 +78,10 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.A += weight.A
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += int32(c.R) * weight.R
-			sum.G += int32(c.G) * weight.G
-			sum.B += int32(c.B) * weight.B
-			sum.A += int32(c.A) * weight.A
+			sum.R += sRGB8ToLinear[c.R] * weight.R
+			sum.G += sRGB8ToLinear[c.G] * weight.G
+			sum.B += sRGB8ToLinear[c.B] * weight.B
+			sum.A += sRGB8ToLinear[c.A] * weight.A
 		}
 	}
 
@@ -121,17 +130,17 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if int32(c.R)*weight.R > max.R*weight.R {
-				max.R = int32(c.R)
+			if v := sRGB8ToLinear[c.R]; v*weight.R > max.R*weight.R {
+				max.R = v
 			}
-			if int32(c.G)*weight.G > max.G*weight.G {
-				max.G = int32(c.G)
+			if v := sRGB8ToLinear[c.G]; v*weight.G > max.G*weight.G {
+				max.G = v
 			}
-			if int32(c.B)*weight.B > max.B*weight.B {
-				max.B = int32(c.B)
+			if v := sRGB8ToLinear[c.B]; v*weight.B > max.B*weight.B {
+				max.B = v
 			}
-			if int32(c.A)*weight.A > max.A*weight.A {
-				max.A = int32(c.A)
+			if v := sRGB8ToLinear[c.A]; v*weight.A > max.A*weight.A {
+				max.A = v
 			}
 		}
 	}
@@ -149,17 +158,17 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if int32(c.R)*weight.R < min.R*weight.R {
-				min.R = int32(c.R)
+			if v := sRGB8ToLinear[c.R]; v*weight.R < min.R*weight.R {
+				min.R = v
 			}
-			if int32(c.G)*weight.G < min.G*weight.G {
-				min.G = int32(c.G)
+			if v := sRGB8ToLinear[c.G]; v*weight.G < min.G*weight.G {
+				min.G = v
 			}
-			if int32(c.B)*weight.B < min.B*weight.B {
-				min.B = int32(c.B)
+			if v := sRGB8ToLinear[c.B]; v*weight.B < min.B*weight.B {
+				min.B = v
 			}
-			if int32(c.A)*weight.A < min.A*weight.A {
-				min.A = int32(c.A)
+			if v := sRGB8ToLinear[c.A]; v*weight.A < min.A*weight.A {
+				min.A = v
 			}
 		}
 	}
@@ -167,7 +176,7 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 	return min.toNRGBA()
 }
 
-func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a int32) {
+func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a float64) {
 	k.weights[y*k.sideLength+x] = kernelWeight{
 		R: r,
 		G: g,
@@ -176,11 +185,11 @@ func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a int32) {
 	}
 }
 
-func (k *Kernel) SetWeightUniform(x, y int, weight int32) {
+func (k *Kernel) SetWeightUniform(x, y int, weight float64) {
 	k.SetWeightRGBA(x, y, weight, weight, weight, weight)
 }
 
-func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
+func (k *Kernel) SetWeightsRGBA(weights [][4]float64) {
 	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
@@ -191,7 +200,7 @@ func (k *Kernel) SetWeightsRGBA(weights [][4]int32) {
 	}
 }
 
-func (k *Kernel) SetWeightsUniform(weights []int32) {
+func (k *Kernel) SetWeightsUniform(weights []float64) {
 	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
@@ -224,32 +233,22 @@ type kernelClip struct {
 }
 
 type kernelWeight struct {
-	R int32
-	G int32
-	B int32
-	A int32
+	R float64
+	G float64
+	B float64
+	A float64
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
 	return color.NRGBA{
-		R: clip255(kw.R),
-		G: clip255(kw.G),
-		B: clip255(kw.B),
-		A: clip255(kw.A),
+		R: convertLinearToSRGB8(kw.R),
+		G: convertLinearToSRGB8(kw.G),
+		B: convertLinearToSRGB8(kw.B),
+		A: convertLinearToSRGB8(kw.A),
 	}
 }
 
-func clip255(v int32) uint8 {
-	if v < 0 {
-		return 0
-	}
-	if v > 255 {
-		return 255
-	}
-	return uint8(v)
-}
-
-func convertToNRGBA(img image.Image) *image.NRGBA {
+func convertImageToNRGBA(img image.Image) *image.NRGBA {
 	inputImg, ok := img.(*image.NRGBA)
 	if !ok {
 		bounds := img.Bounds()
@@ -258,4 +257,22 @@ func convertToNRGBA(img image.Image) *image.NRGBA {
 	}
 
 	return inputImg
+}
+
+func convertLinearToSRGB8(v float64) uint8 {
+	var scaled float64
+	if v <= 0.0031308 {
+		scaled = v * 12.92
+	} else {
+		scaled = 1.055*math.Pow(v, 1/2.4) - 0.055
+	}
+	return uint8(math.Round(math.Min(math.Max(scaled, 0.0), 1.0) * 255))
+}
+
+func convertSRGB8ToLinear(v uint8) float64 {
+	vNormalised := float64(v) / 255
+	if vNormalised <= 0.04045 {
+		return vNormalised / 12.92
+	}
+	return math.Pow((vNormalised+0.055)/1.055, 2.4)
 }

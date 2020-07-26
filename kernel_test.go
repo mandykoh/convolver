@@ -13,7 +13,7 @@ import (
 func BenchmarkAggregation(b *testing.B) {
 	inputImg := randomImage(4096, 4096)
 
-	weights := []int32{
+	weights := []float64{
 		0, 1, 0, 1, 0,
 		1, 0, 1, 0, 1,
 		0, 1, 0, 1, 0,
@@ -46,7 +46,7 @@ func BenchmarkParallelisation(b *testing.B) {
 	inputImg := randomImage(8192, 8192)
 
 	// Gaussian blur kernel
-	weights := []int32{
+	weights := []float64{
 		1, 4, 6, 4, 1,
 		4, 16, 24, 16, 4,
 		6, 24, 36, 24, 6,
@@ -115,36 +115,36 @@ func TestKernel(t *testing.T) {
 		img := randomImage(3, 3)
 
 		t.Run("with uniform weights", func(t *testing.T) {
-			expectedAvg := [4]int32{}
+			expectedAvg := [4]float64{}
 			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
 					c := img.NRGBAAt(j, i)
-					expectedAvg[0] += int32(c.R)
-					expectedAvg[1] += int32(c.G)
-					expectedAvg[2] += int32(c.B)
-					expectedAvg[3] += int32(c.A)
+					expectedAvg[0] += convertSRGB8ToLinear(c.R)
+					expectedAvg[1] += convertSRGB8ToLinear(c.G)
+					expectedAvg[2] += convertSRGB8ToLinear(c.B)
+					expectedAvg[3] += convertSRGB8ToLinear(c.A)
 				}
 			}
-			expectedAvg[0] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[1] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[2] /= int32(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[3] /= int32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[0] /= float64(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[1] /= float64(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[2] /= float64(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[3] /= float64(img.Rect.Dx() * img.Rect.Dy())
 
 			checkExpectedAvg := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
 				result := kernel.Avg(img, 1, 1)
 
-				if expected, actual := expectedAvg[0], int32(result.R); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedAvg[0]), result.R; expected != actual {
 					t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedAvg[1], int32(result.G); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedAvg[1]), result.G; expected != actual {
 					t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedAvg[2], int32(result.B); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedAvg[2]), result.B; expected != actual {
 					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := expectedAvg[3], int32(result.A); expected != actual {
+				if expected, actual := convertLinearToSRGB8(expectedAvg[3]), result.A; expected != actual {
 					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -173,24 +173,24 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("scales pixel values by kernel weights", func(t *testing.T) {
-			totalWeight := int32(0)
+			totalWeight := 0.0
 			kernel := KernelWithRadius(1)
 			for i := 0; i < kernel.SideLength(); i++ {
 				for j := 0; j < kernel.SideLength(); j++ {
-					weight := int32(i + j)
+					weight := float64(i + j)
 					totalWeight += weight
 					kernel.SetWeightUniform(j, i, weight)
 				}
 			}
 
-			avg := [4]int32{}
-			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
-				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+			avg := [4]float64{}
+			for row, i := 0.0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := 0.0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
 					c := img.NRGBAAt(j, i)
-					avg[0] += int32(c.R) * (row + col)
-					avg[1] += int32(c.G) * (row + col)
-					avg[2] += int32(c.B) * (row + col)
-					avg[3] += int32(c.A) * (row + col)
+					avg[0] += convertSRGB8ToLinear(c.R) * (row + col)
+					avg[1] += convertSRGB8ToLinear(c.G) * (row + col)
+					avg[2] += convertSRGB8ToLinear(c.B) * (row + col)
+					avg[3] += convertSRGB8ToLinear(c.A) * (row + col)
 				}
 			}
 			avg[0] /= totalWeight
@@ -200,16 +200,16 @@ func TestKernel(t *testing.T) {
 
 			result := kernel.Avg(img, 1, 1)
 
-			if expected, actual := avg[0], int32(result.R); expected != actual {
+			if expected, actual := convertLinearToSRGB8(avg[0]), result.R; expected != actual {
 				t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := avg[1], int32(result.G); expected != actual {
+			if expected, actual := convertLinearToSRGB8(avg[1]), result.G; expected != actual {
 				t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := avg[2], int32(result.B); expected != actual {
+			if expected, actual := convertLinearToSRGB8(avg[2]), result.B; expected != actual {
 				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := avg[3], int32(result.A); expected != actual {
+			if expected, actual := convertLinearToSRGB8(avg[3]), result.A; expected != actual {
 				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
@@ -360,7 +360,7 @@ func TestKernel(t *testing.T) {
 			})
 
 			t.Run("clips kernel against edges of image", func(t *testing.T) {
-				weights := []int32{
+				weights := []float64{
 					-1, -1, -1, -1, -1,
 					-1, 1, 1, 1, -1,
 					-1, 1, 1, 1, -1,
@@ -376,7 +376,7 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
-			weights := []int32{
+			weights := []float64{
 				0, 1, 0,
 				1, 0, 1,
 				0, 1, 0,
@@ -496,7 +496,7 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
-			weights := []int32{
+			weights := []float64{
 				0, 1, 0,
 				1, 0, 1,
 				0, 1, 0,
