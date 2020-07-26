@@ -387,9 +387,9 @@ func TestKernel(t *testing.T) {
 
 			max := [4]float64{}
 
-			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
-				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
-					w := weights[int(row)*kernel.SideLength()+int(col)]
+			for row, i := 0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := 0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					w := weights[row*kernel.SideLength()+col]
 					if w == 0 {
 						continue
 					}
@@ -507,9 +507,9 @@ func TestKernel(t *testing.T) {
 
 			min := [4]float64{255, 255, 255, 255}
 
-			for row, i := int32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
-				for col, j := int32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
-					w := weights[int(row)*kernel.SideLength()+int(col)]
+			for row, i := 0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := 0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					w := weights[row*kernel.SideLength()+col]
 					if w == 0 {
 						continue
 					}
