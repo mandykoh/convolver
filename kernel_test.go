@@ -5,6 +5,7 @@ import (
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
+	"math"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -123,7 +124,7 @@ func TestKernel(t *testing.T) {
 					expectedAvg[0] += srgb.From8Bit(c.R)
 					expectedAvg[1] += srgb.From8Bit(c.G)
 					expectedAvg[2] += srgb.From8Bit(c.B)
-					expectedAvg[3] += srgb.From8Bit(c.A)
+					expectedAvg[3] += float64(c.A) / 255
 				}
 			}
 			expectedAvg[0] /= float64(img.Rect.Dx() * img.Rect.Dy())
@@ -145,7 +146,7 @@ func TestKernel(t *testing.T) {
 				if expected, actual := srgb.To8Bit(expectedAvg[2]), result.B; expected != actual {
 					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := srgb.To8Bit(expectedAvg[3]), result.A; expected != actual {
+				if expected, actual := uint8(math.Round(expectedAvg[3]*255)), result.A; expected != actual {
 					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -191,7 +192,7 @@ func TestKernel(t *testing.T) {
 					avg[0] += srgb.From8Bit(c.R) * (row + col)
 					avg[1] += srgb.From8Bit(c.G) * (row + col)
 					avg[2] += srgb.From8Bit(c.B) * (row + col)
-					avg[3] += srgb.From8Bit(c.A) * (row + col)
+					avg[3] += float64(c.A) / 255 * (row + col)
 				}
 			}
 			avg[0] /= totalWeight
@@ -210,7 +211,7 @@ func TestKernel(t *testing.T) {
 			if expected, actual := srgb.To8Bit(avg[2]), result.B; expected != actual {
 				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := srgb.To8Bit(avg[3]), result.A; expected != actual {
+			if expected, actual := uint8(math.Round(avg[3]*255)), result.A; expected != actual {
 				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
@@ -327,7 +328,7 @@ func TestKernel(t *testing.T) {
 						if v := srgb.From8Bit(c.B); v > expectedMax[2] {
 							expectedMax[2] = v
 						}
-						if v := srgb.From8Bit(c.A); v > expectedMax[3] {
+						if v := float64(c.A) / 255; v > expectedMax[3] {
 							expectedMax[3] = v
 						}
 					}
@@ -344,7 +345,7 @@ func TestKernel(t *testing.T) {
 				if expected, actual := srgb.To8Bit(expectedMax[2]), result.B; expected != actual {
 					t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := srgb.To8Bit(expectedMax[3]), result.A; expected != actual {
+				if expected, actual := uint8(math.Round(expectedMax[3]*255)), result.A; expected != actual {
 					t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -405,7 +406,7 @@ func TestKernel(t *testing.T) {
 					if v := srgb.From8Bit(c.B); v > max[2] {
 						max[2] = v
 					}
-					if v := srgb.From8Bit(c.A); v > max[3] {
+					if v := float64(c.A) / 255; v > max[3] {
 						max[3] = v
 					}
 				}
@@ -422,7 +423,7 @@ func TestKernel(t *testing.T) {
 			if expected, actual := srgb.To8Bit(max[2]), result.B; expected != actual {
 				t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := srgb.To8Bit(max[3]), result.A; expected != actual {
+			if expected, actual := uint8(math.Round(max[3]*255)), result.A; expected != actual {
 				t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
@@ -451,7 +452,7 @@ func TestKernel(t *testing.T) {
 						if v := srgb.From8Bit(c.B); v < expectedMin[2] {
 							expectedMin[2] = v
 						}
-						if v := srgb.From8Bit(c.A); v < expectedMin[3] {
+						if v := float64(c.A) / 255; v < expectedMin[3] {
 							expectedMin[3] = v
 						}
 					}
@@ -468,7 +469,7 @@ func TestKernel(t *testing.T) {
 				if expected, actual := srgb.To8Bit(expectedMin[2]), result.B; expected != actual {
 					t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
 				}
-				if expected, actual := srgb.To8Bit(expectedMin[3]), result.A; expected != actual {
+				if expected, actual := uint8(math.Round(expectedMin[3]*255)), result.A; expected != actual {
 					t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
 				}
 			}
@@ -525,7 +526,7 @@ func TestKernel(t *testing.T) {
 					if v := srgb.From8Bit(c.B); v < min[2] {
 						min[2] = v
 					}
-					if v := srgb.From8Bit(c.A); v < min[3] {
+					if v := float64(c.A) / 255; v < min[3] {
 						min[3] = v
 					}
 				}
@@ -542,7 +543,7 @@ func TestKernel(t *testing.T) {
 			if expected, actual := srgb.To8Bit(min[2]), result.B; expected != actual {
 				t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
 			}
-			if expected, actual := srgb.To8Bit(min[3]), result.A; expected != actual {
+			if expected, actual := uint8(math.Round(min[3]*255)), result.A; expected != actual {
 				t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
 			}
 		})
