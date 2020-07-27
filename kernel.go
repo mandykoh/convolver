@@ -2,24 +2,12 @@ package convolver
 
 import (
 	"fmt"
+	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
 	"image/draw"
-	"math"
 	"sync"
 )
-
-var sRGB8ToLinearLUT [256]float64
-var linearToSRGB8LUT [512]uint8
-
-func init() {
-	for i := 0; i < 256; i++ {
-		sRGB8ToLinearLUT[i] = convertSRGB8ToLinear(uint8(i))
-	}
-	for i := 0; i < 512; i++ {
-		linearToSRGB8LUT[i] = convertLinearToSRGB8(float64(i) / 511)
-	}
-}
 
 type opFunc func(img *image.NRGBA, x, y int) color.NRGBA
 
@@ -82,10 +70,10 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.A += weight.A
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += lookupSRGB8ToLinear(c.R) * weight.R
-			sum.G += lookupSRGB8ToLinear(c.G) * weight.G
-			sum.B += lookupSRGB8ToLinear(c.B) * weight.B
-			sum.A += lookupSRGB8ToLinear(c.A) * weight.A
+			sum.R += srgb.From8BitToLinear(c.R) * weight.R
+			sum.G += srgb.From8BitToLinear(c.G) * weight.G
+			sum.B += srgb.From8BitToLinear(c.B) * weight.B
+			sum.A += srgb.From8BitToLinear(c.A) * weight.A
 		}
 	}
 
@@ -134,16 +122,16 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := lookupSRGB8ToLinear(c.R); v*weight.R > max.R*weight.R {
+			if v := srgb.From8BitToLinear(c.R); v*weight.R > max.R*weight.R {
 				max.R = v
 			}
-			if v := lookupSRGB8ToLinear(c.G); v*weight.G > max.G*weight.G {
+			if v := srgb.From8BitToLinear(c.G); v*weight.G > max.G*weight.G {
 				max.G = v
 			}
-			if v := lookupSRGB8ToLinear(c.B); v*weight.B > max.B*weight.B {
+			if v := srgb.From8BitToLinear(c.B); v*weight.B > max.B*weight.B {
 				max.B = v
 			}
-			if v := lookupSRGB8ToLinear(c.A); v*weight.A > max.A*weight.A {
+			if v := srgb.From8BitToLinear(c.A); v*weight.A > max.A*weight.A {
 				max.A = v
 			}
 		}
@@ -162,16 +150,16 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := lookupSRGB8ToLinear(c.R); v*weight.R < min.R*weight.R {
+			if v := srgb.From8BitToLinear(c.R); v*weight.R < min.R*weight.R {
 				min.R = v
 			}
-			if v := lookupSRGB8ToLinear(c.G); v*weight.G < min.G*weight.G {
+			if v := srgb.From8BitToLinear(c.G); v*weight.G < min.G*weight.G {
 				min.G = v
 			}
-			if v := lookupSRGB8ToLinear(c.B); v*weight.B < min.B*weight.B {
+			if v := srgb.From8BitToLinear(c.B); v*weight.B < min.B*weight.B {
 				min.B = v
 			}
-			if v := lookupSRGB8ToLinear(c.A); v*weight.A < min.A*weight.A {
+			if v := srgb.From8BitToLinear(c.A); v*weight.A < min.A*weight.A {
 				min.A = v
 			}
 		}
@@ -245,10 +233,10 @@ type kernelWeight struct {
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
 	return color.NRGBA{
-		R: lookupLinearToSRGB8(kw.R),
-		G: lookupLinearToSRGB8(kw.G),
-		B: lookupLinearToSRGB8(kw.B),
-		A: lookupLinearToSRGB8(kw.A),
+		R: srgb.FromLinearTo8Bit(kw.R),
+		G: srgb.FromLinearTo8Bit(kw.G),
+		B: srgb.FromLinearTo8Bit(kw.B),
+		A: srgb.FromLinearTo8Bit(kw.A),
 	}
 }
 
@@ -261,31 +249,4 @@ func convertImageToNRGBA(img image.Image) *image.NRGBA {
 	}
 
 	return inputImg
-}
-
-func convertLinearToSRGB8(v float64) uint8 {
-	var scaled float64
-	if v <= 0.0031308 {
-		scaled = v * 12.92
-	} else {
-		scaled = 1.055*math.Pow(v, 1/2.4) - 0.055
-	}
-	return uint8(math.Round(math.Min(math.Max(scaled, 0.0), 1.0) * 255))
-}
-
-func convertSRGB8ToLinear(v uint8) float64 {
-	vNormalised := float64(v) / 255
-	if vNormalised <= 0.04045 {
-		return vNormalised / 12.92
-	}
-	return math.Pow((vNormalised+0.055)/1.055, 2.4)
-}
-
-func lookupLinearToSRGB8(v float64) uint8 {
-	clipped := math.Min(math.Max(v, 0), 1)
-	return linearToSRGB8LUT[int(math.Round(clipped*511))]
-}
-
-func lookupSRGB8ToLinear(v uint8) float64 {
-	return sRGB8ToLinearLUT[v]
 }
