@@ -70,10 +70,10 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.A += weight.A
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += srgb.From8BitToLinear(c.R) * weight.R
-			sum.G += srgb.From8BitToLinear(c.G) * weight.G
-			sum.B += srgb.From8BitToLinear(c.B) * weight.B
-			sum.A += srgb.From8BitToLinear(c.A) * weight.A
+			sum.R += srgb.From8Bit(c.R) * weight.R
+			sum.G += srgb.From8Bit(c.G) * weight.G
+			sum.B += srgb.From8Bit(c.B) * weight.B
+			sum.A += srgb.From8Bit(c.A) * weight.A
 		}
 	}
 
@@ -122,16 +122,16 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := srgb.From8BitToLinear(c.R); v*weight.R > max.R*weight.R {
+			if v := srgb.From8Bit(c.R); v*weight.R > max.R*weight.R {
 				max.R = v
 			}
-			if v := srgb.From8BitToLinear(c.G); v*weight.G > max.G*weight.G {
+			if v := srgb.From8Bit(c.G); v*weight.G > max.G*weight.G {
 				max.G = v
 			}
-			if v := srgb.From8BitToLinear(c.B); v*weight.B > max.B*weight.B {
+			if v := srgb.From8Bit(c.B); v*weight.B > max.B*weight.B {
 				max.B = v
 			}
-			if v := srgb.From8BitToLinear(c.A); v*weight.A > max.A*weight.A {
+			if v := srgb.From8Bit(c.A); v*weight.A > max.A*weight.A {
 				max.A = v
 			}
 		}
@@ -150,16 +150,16 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := srgb.From8BitToLinear(c.R); v*weight.R < min.R*weight.R {
+			if v := srgb.From8Bit(c.R); v*weight.R < min.R*weight.R {
 				min.R = v
 			}
-			if v := srgb.From8BitToLinear(c.G); v*weight.G < min.G*weight.G {
+			if v := srgb.From8Bit(c.G); v*weight.G < min.G*weight.G {
 				min.G = v
 			}
-			if v := srgb.From8BitToLinear(c.B); v*weight.B < min.B*weight.B {
+			if v := srgb.From8Bit(c.B); v*weight.B < min.B*weight.B {
 				min.B = v
 			}
-			if v := srgb.From8BitToLinear(c.A); v*weight.A < min.A*weight.A {
+			if v := srgb.From8Bit(c.A); v*weight.A < min.A*weight.A {
 				min.A = v
 			}
 		}
@@ -233,10 +233,10 @@ type kernelWeight struct {
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
 	return color.NRGBA{
-		R: srgb.FromLinearTo8Bit(kw.R),
-		G: srgb.FromLinearTo8Bit(kw.G),
-		B: srgb.FromLinearTo8Bit(kw.B),
-		A: srgb.FromLinearTo8Bit(kw.A),
+		R: srgb.To8Bit(kw.R),
+		G: srgb.To8Bit(kw.G),
+		B: srgb.To8Bit(kw.B),
+		A: srgb.To8Bit(kw.A),
 	}
 }
 
