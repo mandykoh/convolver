@@ -56,7 +56,7 @@ The result of extracting only the blue and alpha channels looks like this:
 The following specifies a 5x5 kernel that expresses a Gaussian blur by using the `SetWeightsUniform` method, using a single uniform weight for each of the R, G, B, and alpha channels:
 
 ```go
-weights := []float64{
+weights := []float32{
     1, 4, 6, 4, 1,
     4, 16, 24, 16, 4,
     6, 24, 36, 24, 6,
@@ -98,7 +98,7 @@ The resulting eight passes would then look like this:
 A simple sharpening kernel can be expressed like this. The weights emphasise contrast between a pixel and its four neighbours:
 
 ```go
-weights := []float64{
+weights := []float32{
     0, -1, 0,
     -1, 5, -1,
     0, -1, 0,
@@ -124,7 +124,7 @@ And the result looks like this:
 An edge detection kernel might look like this. Note that—unlike sharpening—the weights around the edges sum to zero with the weight in the centre, which means that in areas without a contrasting edge, the output will be zero:
 
 ```go
-weights := []float64{
+weights := []float32{
     -1, -1, -1,
     -1, 8, -1,
     -1, -1, -1,
@@ -152,7 +152,7 @@ Convolution can also be performed using aggregation functions other than a weigh
 For example, we can define a simple, uniformly weighted 5x5 “circle” for a kernel:
 
 ```go
-weights := []float64{
+weights := []float32{
     0, 1, 1, 1, 0,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,

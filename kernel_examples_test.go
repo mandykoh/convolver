@@ -67,7 +67,7 @@ func ExampleKernel_dilateErode() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	weights := []float64{
+	weights := []float32{
 		0, 1, 1, 1, 0,
 		1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1,
@@ -124,7 +124,7 @@ func ExampleKernel_edgeDetect() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	weights := []float64{
+	weights := []float32{
 		-1, -1, -1,
 		-1, 8, -1,
 		-1, -1, -1,
@@ -175,7 +175,7 @@ func ExampleKernel_gaussianBlur() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	weights := []float64{
+	weights := []float32{
 		1, 4, 6, 4, 1,
 		4, 16, 24, 16, 4,
 		6, 24, 36, 24, 6,
@@ -229,7 +229,7 @@ func ExampleKernel_sharpen() {
 		log.Panicf("Error decoding PNG: %v", err)
 	}
 
-	weights := []float64{
+	weights := []float32{
 		0, -1, 0,
 		-1, 5, -1,
 		0, -1, 0,

@@ -1,4 +1,6 @@
-github.com/mandykoh/prism v0.2.0 h1:pklWAfJP3CrQprzNLpDenM0OOKujmJc/uuI9ODXy1eg=
-github.com/mandykoh/prism v0.2.0/go.mod h1:G6W7/9SCeyI/1BDl8Tyto5UrDequPKPVwHhfnVBlFq0=
 github.com/mandykoh/prism v0.2.1 h1:C1FTXUdLBC3NnZFeHSemu7er9EjTDbWBzzZea6SGPFI=
 github.com/mandykoh/prism v0.2.1/go.mod h1:G6W7/9SCeyI/1BDl8Tyto5UrDequPKPVwHhfnVBlFq0=
+github.com/mandykoh/prism v0.5.0 h1:beWeePc7sqCDbu1YcRE+pKPtE0pIk3WGVIFayulUs/o=
+github.com/mandykoh/prism v0.5.0/go.mod h1:G6W7/9SCeyI/1BDl8Tyto5UrDequPKPVwHhfnVBlFq0=
+github.com/mandykoh/prism v0.5.1 h1:IC7EYz236ez6BUDSfBZRgY+hNALhzWsOf8Qdb5vrvbM=
+github.com/mandykoh/prism v0.5.1/go.mod h1:G6W7/9SCeyI/1BDl8Tyto5UrDequPKPVwHhfnVBlFq0=

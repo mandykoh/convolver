@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"math"
 	"sync"
 )
 
@@ -70,11 +69,11 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.B += weight.B
 			totalWeight.A += weight.A
 
-			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			sum.R += srgb.From8Bit(c.R) * weight.R
-			sum.G += srgb.From8Bit(c.G) * weight.G
-			sum.B += srgb.From8Bit(c.B) * weight.B
-			sum.A += float64(c.A) / 255 * weight.A
+			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			sum.R += c.R * weight.R
+			sum.G += c.G * weight.G
+			sum.B += c.B * weight.B
+			sum.A += c.A * weight.A
 		}
 	}
 
@@ -122,18 +121,18 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
-			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := srgb.From8Bit(c.R); v*weight.R > max.R*weight.R {
-				max.R = v
+			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			if c.R*weight.R > max.R*weight.R {
+				max.R = c.R
 			}
-			if v := srgb.From8Bit(c.G); v*weight.G > max.G*weight.G {
-				max.G = v
+			if c.G*weight.G > max.G*weight.G {
+				max.G = c.G
 			}
-			if v := srgb.From8Bit(c.B); v*weight.B > max.B*weight.B {
-				max.B = v
+			if c.B*weight.B > max.B*weight.B {
+				max.B = c.B
 			}
-			if v := float64(c.A) / 255; v*weight.A > max.A*weight.A {
-				max.A = v
+			if c.A*weight.A > max.A*weight.A {
+				max.A = c.A
 			}
 		}
 	}
@@ -150,18 +149,18 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
-			c := img.NRGBAAt(x+t-k.radius, y+s-k.radius)
-			if v := srgb.From8Bit(c.R); v*weight.R < min.R*weight.R {
-				min.R = v
+			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			if c.R*weight.R < min.R*weight.R {
+				min.R = c.R
 			}
-			if v := srgb.From8Bit(c.G); v*weight.G < min.G*weight.G {
-				min.G = v
+			if c.G*weight.G < min.G*weight.G {
+				min.G = c.G
 			}
-			if v := srgb.From8Bit(c.B); v*weight.B < min.B*weight.B {
-				min.B = v
+			if c.B*weight.B < min.B*weight.B {
+				min.B = c.B
 			}
-			if v := float64(c.A) / 255; v*weight.A < min.A*weight.A {
-				min.A = v
+			if c.A*weight.A < min.A*weight.A {
+				min.A = c.A
 			}
 		}
 	}
@@ -169,20 +168,15 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 	return min.toNRGBA()
 }
 
-func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a float64) {
-	k.weights[y*k.sideLength+x] = kernelWeight{
-		R: r,
-		G: g,
-		B: b,
-		A: a,
-	}
+func (k *Kernel) SetWeightRGBA(x, y int, r, g, b, a float32) {
+	k.weights[y*k.sideLength+x] = kernelWeight{R: r, G: g, B: b, A: a}
 }
 
-func (k *Kernel) SetWeightUniform(x, y int, weight float64) {
+func (k *Kernel) SetWeightUniform(x, y int, weight float32) {
 	k.SetWeightRGBA(x, y, weight, weight, weight, weight)
 }
 
-func (k *Kernel) SetWeightsRGBA(weights [][4]float64) {
+func (k *Kernel) SetWeightsRGBA(weights [][4]float32) {
 	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
@@ -193,7 +187,7 @@ func (k *Kernel) SetWeightsRGBA(weights [][4]float64) {
 	}
 }
 
-func (k *Kernel) SetWeightsUniform(weights []float64) {
+func (k *Kernel) SetWeightsUniform(weights []float32) {
 	if expectedWeights := k.sideLength * k.sideLength; expectedWeights != len(weights) {
 		panic(fmt.Sprintf("kernel of radius %d requires exactly %d weights but %d provided", k.radius, expectedWeights, len(weights)))
 	}
@@ -226,19 +220,14 @@ type kernelClip struct {
 }
 
 type kernelWeight struct {
-	R float64
-	G float64
-	B float64
-	A float64
+	R float32
+	G float32
+	B float32
+	A float32
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
-	return color.NRGBA{
-		R: srgb.To8Bit(kw.R),
-		G: srgb.To8Bit(kw.G),
-		B: srgb.To8Bit(kw.B),
-		A: uint8(math.Round(clipLinearValue(kw.A) * 255)),
-	}
+	return srgb.Color{R: kw.R, G: kw.G, B: kw.B, A: kw.A}.To8Bit()
 }
 
 func convertImageToNRGBA(img image.Image) *image.NRGBA {
@@ -250,8 +239,4 @@ func convertImageToNRGBA(img image.Image) *image.NRGBA {
 	}
 
 	return inputImg
-}
-
-func clipLinearValue(v float64) float64 {
-	return math.Max(math.Min(v, 1), 0)
 }

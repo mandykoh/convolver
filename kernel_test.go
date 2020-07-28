@@ -5,7 +5,6 @@ import (
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
-	"math"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -15,7 +14,7 @@ import (
 func BenchmarkAggregation(b *testing.B) {
 	inputImg := randomImage(4096, 4096)
 
-	weights := []float64{
+	weights := []float32{
 		0, 1, 0, 1, 0,
 		1, 0, 1, 0, 1,
 		0, 1, 0, 1, 0,
@@ -48,7 +47,7 @@ func BenchmarkParallelisation(b *testing.B) {
 	inputImg := randomImage(8192, 8192)
 
 	// Gaussian blur kernel
-	weights := []float64{
+	weights := []float32{
 		1, 4, 6, 4, 1,
 		4, 16, 24, 16, 4,
 		6, 24, 36, 24, 6,
@@ -117,37 +116,34 @@ func TestKernel(t *testing.T) {
 		img := randomImage(3, 3)
 
 		t.Run("with uniform weights", func(t *testing.T) {
-			expectedAvg := [4]float64{}
+			expectedAvg := [4]float32{}
 			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-					c := img.NRGBAAt(j, i)
-					expectedAvg[0] += srgb.From8Bit(c.R)
-					expectedAvg[1] += srgb.From8Bit(c.G)
-					expectedAvg[2] += srgb.From8Bit(c.B)
-					expectedAvg[3] += float64(c.A) / 255
+					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					expectedAvg[0] += c.R
+					expectedAvg[1] += c.G
+					expectedAvg[2] += c.B
+					expectedAvg[3] += c.A
 				}
 			}
-			expectedAvg[0] /= float64(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[1] /= float64(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[2] /= float64(img.Rect.Dx() * img.Rect.Dy())
-			expectedAvg[3] /= float64(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[0] /= float32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[1] /= float32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[2] /= float32(img.Rect.Dx() * img.Rect.Dy())
+			expectedAvg[3] /= float32(img.Rect.Dx() * img.Rect.Dy())
 
 			checkExpectedAvg := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
 				result := kernel.Avg(img, 1, 1)
+				expectedColour := srgb.Color{
+					R: expectedAvg[0],
+					G: expectedAvg[1],
+					B: expectedAvg[2],
+					A: expectedAvg[3],
+				}.To8Bit()
 
-				if expected, actual := srgb.To8Bit(expectedAvg[0]), result.R; expected != actual {
-					t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedAvg[1]), result.G; expected != actual {
-					t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedAvg[2]), result.B; expected != actual {
-					t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := uint8(math.Round(expectedAvg[3]*255)), result.A; expected != actual {
-					t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedColour, result; expected != actual {
+					t.Errorf("Expected average to be %+v but was %+v", expected, actual)
 				}
 			}
 
@@ -175,24 +171,24 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("scales pixel values by kernel weights", func(t *testing.T) {
-			totalWeight := 0.0
+			totalWeight := float32(0.0)
 			kernel := KernelWithRadius(1)
 			for i := 0; i < kernel.SideLength(); i++ {
 				for j := 0; j < kernel.SideLength(); j++ {
-					weight := float64(i + j)
+					weight := float32(i + j)
 					totalWeight += weight
 					kernel.SetWeightUniform(j, i, weight)
 				}
 			}
 
-			avg := [4]float64{}
-			for row, i := 0.0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
-				for col, j := 0.0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
-					c := img.NRGBAAt(j, i)
-					avg[0] += srgb.From8Bit(c.R) * (row + col)
-					avg[1] += srgb.From8Bit(c.G) * (row + col)
-					avg[2] += srgb.From8Bit(c.B) * (row + col)
-					avg[3] += float64(c.A) / 255 * (row + col)
+			avg := [4]float32{}
+			for row, i := float32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
+				for col, j := float32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
+					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					avg[0] += c.R * (row + col)
+					avg[1] += c.G * (row + col)
+					avg[2] += c.B * (row + col)
+					avg[3] += c.A * (row + col)
 				}
 			}
 			avg[0] /= totalWeight
@@ -201,18 +197,10 @@ func TestKernel(t *testing.T) {
 			avg[3] /= totalWeight
 
 			result := kernel.Avg(img, 1, 1)
+			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2], A: avg[3]}.To8Bit()
 
-			if expected, actual := srgb.To8Bit(avg[0]), result.R; expected != actual {
-				t.Errorf("Expected average of red channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(avg[1]), result.G; expected != actual {
-				t.Errorf("Expected average of green channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(avg[2]), result.B; expected != actual {
-				t.Errorf("Expected average of blue channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := uint8(math.Round(avg[3]*255)), result.A; expected != actual {
-				t.Errorf("Expected average of alpha channel to be %d but was %d", expected, actual)
+			if expected, actual := expectedColour, result; expected != actual {
+				t.Errorf("Expected average to be %+v but was %+v", expected, actual)
 			}
 		})
 	})
@@ -313,40 +301,32 @@ func TestKernel(t *testing.T) {
 			checkExpectedMax := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				expectedMax := [4]float64{}
+				max := [4]float32{}
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-						c := img.NRGBAAt(j, i)
+						c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 
-						if v := srgb.From8Bit(c.R); v > expectedMax[0] {
-							expectedMax[0] = v
+						if c.R > max[0] {
+							max[0] = c.R
 						}
-						if v := srgb.From8Bit(c.G); v > expectedMax[1] {
-							expectedMax[1] = v
+						if c.G > max[1] {
+							max[1] = c.G
 						}
-						if v := srgb.From8Bit(c.B); v > expectedMax[2] {
-							expectedMax[2] = v
+						if c.B > max[2] {
+							max[2] = c.B
 						}
-						if v := float64(c.A) / 255; v > expectedMax[3] {
-							expectedMax[3] = v
+						if c.A > max[3] {
+							max[3] = c.A
 						}
 					}
 				}
 
 				result := kernel.Max(img, 1, 1)
+				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.To8Bit()
 
-				if expected, actual := srgb.To8Bit(expectedMax[0]), result.R; expected != actual {
-					t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedMax[1]), result.G; expected != actual {
-					t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedMax[2]), result.B; expected != actual {
-					t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := uint8(math.Round(expectedMax[3]*255)), result.A; expected != actual {
-					t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedColour, result; expected != actual {
+					t.Errorf("Expected max to be %+v but was %+v", expected, actual)
 				}
 			}
 
@@ -362,7 +342,7 @@ func TestKernel(t *testing.T) {
 			})
 
 			t.Run("clips kernel against edges of image", func(t *testing.T) {
-				weights := []float64{
+				weights := []float32{
 					-1, -1, -1, -1, -1,
 					-1, 1, 1, 1, -1,
 					-1, 1, 1, 1, -1,
@@ -378,7 +358,7 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
-			weights := []float64{
+			weights := []float32{
 				0, 1, 0,
 				1, 0, 1,
 				0, 1, 0,
@@ -387,7 +367,7 @@ func TestKernel(t *testing.T) {
 			kernel := KernelWithRadius(1)
 			kernel.SetWeightsUniform(weights)
 
-			max := [4]float64{}
+			max := [4]float32{}
 
 			for row, i := 0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := 0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
@@ -396,35 +376,27 @@ func TestKernel(t *testing.T) {
 						continue
 					}
 
-					c := img.NRGBAAt(j, i)
-					if v := srgb.From8Bit(c.R); v > max[0] {
-						max[0] = v
+					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					if c.R > max[0] {
+						max[0] = c.R
 					}
-					if v := srgb.From8Bit(c.G); v > max[1] {
-						max[1] = v
+					if c.G > max[1] {
+						max[1] = c.G
 					}
-					if v := srgb.From8Bit(c.B); v > max[2] {
-						max[2] = v
+					if c.B > max[2] {
+						max[2] = c.B
 					}
-					if v := float64(c.A) / 255; v > max[3] {
-						max[3] = v
+					if c.A > max[3] {
+						max[3] = c.A
 					}
 				}
 			}
 
 			result := kernel.Max(img, 1, 1)
+			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.To8Bit()
 
-			if expected, actual := srgb.To8Bit(max[0]), result.R; expected != actual {
-				t.Errorf("Expected max of red channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(max[1]), result.G; expected != actual {
-				t.Errorf("Expected max of green channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(max[2]), result.B; expected != actual {
-				t.Errorf("Expected max of blue channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := uint8(math.Round(max[3]*255)), result.A; expected != actual {
-				t.Errorf("Expected max of alpha channel to be %d but was %d", expected, actual)
+			if expected, actual := expectedColour, result; expected != actual {
+				t.Errorf("Expected max to be %+v but was %+v", expected, actual)
 			}
 		})
 	})
@@ -437,40 +409,32 @@ func TestKernel(t *testing.T) {
 			checkExpectedMin := func(t *testing.T, kernel Kernel) {
 				t.Helper()
 
-				expectedMin := [4]float64{255, 255, 255, 255}
+				min := [4]float32{255, 255, 255, 255}
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-						c := img.NRGBAAt(j, i)
+						c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 
-						if v := srgb.From8Bit(c.R); v < expectedMin[0] {
-							expectedMin[0] = v
+						if c.R < min[0] {
+							min[0] = c.R
 						}
-						if v := srgb.From8Bit(c.G); v < expectedMin[1] {
-							expectedMin[1] = v
+						if c.G < min[1] {
+							min[1] = c.G
 						}
-						if v := srgb.From8Bit(c.B); v < expectedMin[2] {
-							expectedMin[2] = v
+						if c.B < min[2] {
+							min[2] = c.B
 						}
-						if v := float64(c.A) / 255; v < expectedMin[3] {
-							expectedMin[3] = v
+						if c.A < min[3] {
+							min[3] = c.A
 						}
 					}
 				}
 
 				result := kernel.Min(img, 1, 1)
+				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.To8Bit()
 
-				if expected, actual := srgb.To8Bit(expectedMin[0]), result.R; expected != actual {
-					t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedMin[1]), result.G; expected != actual {
-					t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := srgb.To8Bit(expectedMin[2]), result.B; expected != actual {
-					t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
-				}
-				if expected, actual := uint8(math.Round(expectedMin[3]*255)), result.A; expected != actual {
-					t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
+				if expected, actual := expectedColour, result; expected != actual {
+					t.Errorf("Expected min to be %+v but was %+v", expected, actual)
 				}
 			}
 
@@ -498,7 +462,7 @@ func TestKernel(t *testing.T) {
 		})
 
 		t.Run("ignores pixel values with zero weight", func(t *testing.T) {
-			weights := []float64{
+			weights := []float32{
 				0, 1, 0,
 				1, 0, 1,
 				0, 1, 0,
@@ -507,7 +471,7 @@ func TestKernel(t *testing.T) {
 			kernel := KernelWithRadius(1)
 			kernel.SetWeightsUniform(weights)
 
-			min := [4]float64{255, 255, 255, 255}
+			min := [4]float32{255, 255, 255, 255}
 
 			for row, i := 0, img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := 0, img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
@@ -516,35 +480,27 @@ func TestKernel(t *testing.T) {
 						continue
 					}
 
-					c := img.NRGBAAt(j, i)
-					if v := srgb.From8Bit(c.R); v < min[0] {
-						min[0] = v
+					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					if c.R < min[0] {
+						min[0] = c.R
 					}
-					if v := srgb.From8Bit(c.G); v < min[1] {
-						min[1] = v
+					if c.G < min[1] {
+						min[1] = c.G
 					}
-					if v := srgb.From8Bit(c.B); v < min[2] {
-						min[2] = v
+					if c.B < min[2] {
+						min[2] = c.B
 					}
-					if v := float64(c.A) / 255; v < min[3] {
-						min[3] = v
+					if c.A < min[3] {
+						min[3] = c.A
 					}
 				}
 			}
 
 			result := kernel.Min(img, 1, 1)
+			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.To8Bit()
 
-			if expected, actual := srgb.To8Bit(min[0]), result.R; expected != actual {
-				t.Errorf("Expected min of red channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(min[1]), result.G; expected != actual {
-				t.Errorf("Expected min of green channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := srgb.To8Bit(min[2]), result.B; expected != actual {
-				t.Errorf("Expected min of blue channel to be %d but was %d", expected, actual)
-			}
-			if expected, actual := uint8(math.Round(min[3]*255)), result.A; expected != actual {
-				t.Errorf("Expected min of alpha channel to be %d but was %d", expected, actual)
+			if expected, actual := expectedColour, result; expected != actual {
+				t.Errorf("Expected min to be %+v but was %+v", expected, actual)
 			}
 		})
 	})
