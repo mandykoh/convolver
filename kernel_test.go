@@ -140,7 +140,7 @@ func TestKernel(t *testing.T) {
 					G: expectedAvg[1],
 					B: expectedAvg[2],
 					A: expectedAvg[3],
-				}.To8Bit()
+				}.ToNRGBA()
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -197,7 +197,7 @@ func TestKernel(t *testing.T) {
 			avg[3] /= totalWeight
 
 			result := kernel.Avg(img, 1, 1)
-			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2], A: avg[3]}.To8Bit()
+			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2], A: avg[3]}.ToNRGBA()
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -323,7 +323,7 @@ func TestKernel(t *testing.T) {
 				}
 
 				result := kernel.Max(img, 1, 1)
-				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.To8Bit()
+				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.ToNRGBA()
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -393,7 +393,7 @@ func TestKernel(t *testing.T) {
 			}
 
 			result := kernel.Max(img, 1, 1)
-			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.To8Bit()
+			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.ToNRGBA()
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -431,7 +431,7 @@ func TestKernel(t *testing.T) {
 				}
 
 				result := kernel.Min(img, 1, 1)
-				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.To8Bit()
+				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.ToNRGBA()
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected min to be %+v but was %+v", expected, actual)
@@ -497,7 +497,7 @@ func TestKernel(t *testing.T) {
 			}
 
 			result := kernel.Min(img, 1, 1)
-			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.To8Bit()
+			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.ToNRGBA()
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected min to be %+v but was %+v", expected, actual)

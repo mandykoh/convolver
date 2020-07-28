@@ -227,7 +227,7 @@ type kernelWeight struct {
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
-	return srgb.Color{R: kw.R, G: kw.G, B: kw.B, A: kw.A}.To8Bit()
+	return srgb.Color{R: kw.R, G: kw.G, B: kw.B, A: kw.A}.ToNRGBA()
 }
 
 func convertImageToNRGBA(img image.Image) *image.NRGBA {
