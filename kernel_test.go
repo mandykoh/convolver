@@ -119,11 +119,11 @@ func TestKernel(t *testing.T) {
 			expectedAvg := [4]float32{}
 			for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 				for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 					expectedAvg[0] += c.R
 					expectedAvg[1] += c.G
 					expectedAvg[2] += c.B
-					expectedAvg[3] += c.A
+					expectedAvg[3] += a
 				}
 			}
 			expectedAvg[0] /= float32(img.Rect.Dx() * img.Rect.Dy())
@@ -139,8 +139,7 @@ func TestKernel(t *testing.T) {
 					R: expectedAvg[0],
 					G: expectedAvg[1],
 					B: expectedAvg[2],
-					A: expectedAvg[3],
-				}.ToNRGBA()
+				}.ToNRGBA(expectedAvg[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -184,11 +183,11 @@ func TestKernel(t *testing.T) {
 			avg := [4]float32{}
 			for row, i := float32(0), img.Rect.Min.Y; i < img.Rect.Max.Y; row, i = row+1, i+1 {
 				for col, j := float32(0), img.Rect.Min.X; j < img.Rect.Max.X; col, j = col+1, j+1 {
-					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 					avg[0] += c.R * (row + col)
 					avg[1] += c.G * (row + col)
 					avg[2] += c.B * (row + col)
-					avg[3] += c.A * (row + col)
+					avg[3] += a * (row + col)
 				}
 			}
 			avg[0] /= totalWeight
@@ -197,7 +196,7 @@ func TestKernel(t *testing.T) {
 			avg[3] /= totalWeight
 
 			result := kernel.Avg(img, 1, 1)
-			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2], A: avg[3]}.ToNRGBA()
+			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2]}.ToNRGBA(avg[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -305,7 +304,7 @@ func TestKernel(t *testing.T) {
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-						c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+						c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 
 						if c.R > max[0] {
 							max[0] = c.R
@@ -316,14 +315,14 @@ func TestKernel(t *testing.T) {
 						if c.B > max[2] {
 							max[2] = c.B
 						}
-						if c.A > max[3] {
-							max[3] = c.A
+						if a > max[3] {
+							max[3] = a
 						}
 					}
 				}
 
 				result := kernel.Max(img, 1, 1)
-				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.ToNRGBA()
+				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2]}.ToNRGBA(max[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -376,7 +375,7 @@ func TestKernel(t *testing.T) {
 						continue
 					}
 
-					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 					if c.R > max[0] {
 						max[0] = c.R
 					}
@@ -386,14 +385,14 @@ func TestKernel(t *testing.T) {
 					if c.B > max[2] {
 						max[2] = c.B
 					}
-					if c.A > max[3] {
-						max[3] = c.A
+					if a > max[3] {
+						max[3] = a
 					}
 				}
 			}
 
 			result := kernel.Max(img, 1, 1)
-			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2], A: max[3]}.ToNRGBA()
+			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2]}.ToNRGBA(max[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -413,7 +412,7 @@ func TestKernel(t *testing.T) {
 
 				for i := img.Rect.Min.Y; i < img.Rect.Max.Y; i++ {
 					for j := img.Rect.Min.X; j < img.Rect.Max.X; j++ {
-						c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+						c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 
 						if c.R < min[0] {
 							min[0] = c.R
@@ -424,14 +423,14 @@ func TestKernel(t *testing.T) {
 						if c.B < min[2] {
 							min[2] = c.B
 						}
-						if c.A < min[3] {
-							min[3] = c.A
+						if a < min[3] {
+							min[3] = a
 						}
 					}
 				}
 
 				result := kernel.Min(img, 1, 1)
-				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.ToNRGBA()
+				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2]}.ToNRGBA(min[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected min to be %+v but was %+v", expected, actual)
@@ -480,7 +479,7 @@ func TestKernel(t *testing.T) {
 						continue
 					}
 
-					c := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
+					c, a := srgb.ColorFromNRGBA(img.NRGBAAt(j, i))
 					if c.R < min[0] {
 						min[0] = c.R
 					}
@@ -490,14 +489,14 @@ func TestKernel(t *testing.T) {
 					if c.B < min[2] {
 						min[2] = c.B
 					}
-					if c.A < min[3] {
-						min[3] = c.A
+					if a < min[3] {
+						min[3] = a
 					}
 				}
 			}
 
 			result := kernel.Min(img, 1, 1)
-			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2], A: min[3]}.ToNRGBA()
+			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2]}.ToNRGBA(min[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected min to be %+v but was %+v", expected, actual)

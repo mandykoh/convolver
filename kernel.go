@@ -69,11 +69,11 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 			totalWeight.B += weight.B
 			totalWeight.A += weight.A
 
-			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
 			sum.R += c.R * weight.R
 			sum.G += c.G * weight.G
 			sum.B += c.B * weight.B
-			sum.A += c.A * weight.A
+			sum.A += a * weight.A
 		}
 	}
 
@@ -121,7 +121,7 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
-			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
 			if c.R*weight.R > max.R*weight.R {
 				max.R = c.R
 			}
@@ -131,8 +131,8 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			if c.B*weight.B > max.B*weight.B {
 				max.B = c.B
 			}
-			if c.A*weight.A > max.A*weight.A {
-				max.A = c.A
+			if a*weight.A > max.A*weight.A {
+				max.A = a
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
 
-			c := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
+			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
 			if c.R*weight.R < min.R*weight.R {
 				min.R = c.R
 			}
@@ -159,8 +159,8 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			if c.B*weight.B < min.B*weight.B {
 				min.B = c.B
 			}
-			if c.A*weight.A < min.A*weight.A {
-				min.A = c.A
+			if a*weight.A < min.A*weight.A {
+				min.A = a
 			}
 		}
 	}
@@ -227,7 +227,7 @@ type kernelWeight struct {
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
-	return srgb.Color{R: kw.R, G: kw.G, B: kw.B, A: kw.A}.ToNRGBA()
+	return srgb.Color{R: kw.R, G: kw.G, B: kw.B}.ToNRGBA(kw.A)
 }
 
 func convertImageToNRGBA(img image.Image) *image.NRGBA {
