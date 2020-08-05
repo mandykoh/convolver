@@ -2,7 +2,7 @@
 
 ![Convolver title](doc-images/title.png)
 
-[![GoDoc](https://godoc.org/github.com/mandykoh/convolver?status.svg)](https://godoc.org/github.com/mandykoh/convolver)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/mandykoh/convolver)](https://pkg.go.dev/github.com/mandykoh/convolver)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mandykoh/convolver)](https://goreportcard.com/report/github.com/mandykoh/convolver)
 [![Build Status](https://travis-ci.org/mandykoh/convolver.svg?branch=main)](https://travis-ci.org/mandykoh/convolver)
 
@@ -12,7 +12,7 @@ Convolution operations support parallel processing out of the box, allowing the 
 
 `convolver` currently assumes that image data is sRGB encoded.
 
-See the [API documentation](https://godoc.org/github.com/mandykoh/convolver) for more details.
+See the [API documentation](https://pkg.go.dev/github.com/mandykoh/convolver) for more details.
 
 This software is made available under an [MIT license](LICENSE).
 
