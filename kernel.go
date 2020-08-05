@@ -122,16 +122,16 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
-			if c.R*weight.R > max.R*weight.R {
+			if c.R*weight.R > max.R && weight.R != 0 {
 				max.R = c.R
 			}
-			if c.G*weight.G > max.G*weight.G {
+			if c.G*weight.G > max.G && weight.G != 0 {
 				max.G = c.G
 			}
-			if c.B*weight.B > max.B*weight.B {
+			if c.B*weight.B > max.B && weight.B != 0 {
 				max.B = c.B
 			}
-			if a*weight.A > max.A*weight.A {
+			if a*weight.A > max.A && weight.A != 0 {
 				max.A = a
 			}
 		}
@@ -150,16 +150,16 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
-			if c.R*weight.R < min.R*weight.R {
+			if c.R*weight.R < min.R && weight.R != 0 {
 				min.R = c.R
 			}
-			if c.G*weight.G < min.G*weight.G {
+			if c.G*weight.G < min.G && weight.G != 0 {
 				min.G = c.G
 			}
-			if c.B*weight.B < min.B*weight.B {
+			if c.B*weight.B < min.B && weight.B != 0 {
 				min.B = c.B
 			}
-			if a*weight.A < min.A*weight.A {
+			if a*weight.A < min.A && weight.A != 0 {
 				min.A = a
 			}
 		}
