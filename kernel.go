@@ -1,7 +1,9 @@
 package convolver
 
+import "C"
 import (
 	"fmt"
+	"github.com/mandykoh/prism/colconv"
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
@@ -231,12 +233,41 @@ func (kw *kernelWeight) toNRGBA() color.NRGBA {
 }
 
 func convertImageToNRGBA(img image.Image) *image.NRGBA {
-	inputImg, ok := img.(*image.NRGBA)
-	if !ok {
-		bounds := img.Bounds()
-		inputImg = image.NewNRGBA(bounds)
-		draw.Draw(inputImg, bounds, img, bounds.Min, draw.Src)
-	}
+	switch inputImg := img.(type) {
 
-	return inputImg
+	case *image.YCbCr:
+		bounds := img.Bounds()
+		nrgbaImg := image.NewNRGBA(bounds)
+
+		for i := bounds.Min.Y; i < bounds.Max.Y; i++ {
+			for j := bounds.Min.X; j < bounds.Max.X; j++ {
+				c := inputImg.YCbCrAt(j, i)
+				r, g, b := color.YCbCrToRGB(c.Y, c.Cb, c.Cr)
+				nrgba := color.NRGBA{R: r, G: g, B: b, A: 255}
+				nrgbaImg.SetNRGBA(j, i, nrgba)
+			}
+		}
+		return nrgbaImg
+
+	case *image.RGBA:
+		bounds := img.Bounds()
+		nrgbaImg := image.NewNRGBA(bounds)
+
+		for i := bounds.Min.Y; i < bounds.Max.Y; i++ {
+			for j := bounds.Min.X; j < bounds.Max.X; j++ {
+				c := colconv.RGBAtoNRGBA(inputImg.RGBAAt(j, i))
+				nrgbaImg.SetNRGBA(j, i, c)
+			}
+		}
+		return nrgbaImg
+
+	case *image.NRGBA:
+		return inputImg
+
+	default:
+		bounds := img.Bounds()
+		nrgbaImg := image.NewNRGBA(bounds)
+		draw.Draw(nrgbaImg, bounds, img, bounds.Min, draw.Src)
+		return nrgbaImg
+	}
 }
