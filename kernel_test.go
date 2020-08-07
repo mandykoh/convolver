@@ -135,11 +135,11 @@ func TestKernel(t *testing.T) {
 				t.Helper()
 
 				result := kernel.Avg(img, 1, 1)
-				expectedColour := srgb.Color{
-					R: expectedAvg[0],
-					G: expectedAvg[1],
-					B: expectedAvg[2],
-				}.ToNRGBA(expectedAvg[3])
+				expectedColour := srgb.ColorFromLinear(
+					expectedAvg[0],
+					expectedAvg[1],
+					expectedAvg[2],
+				).ToNRGBA(expectedAvg[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -196,7 +196,7 @@ func TestKernel(t *testing.T) {
 			avg[3] /= totalWeight
 
 			result := kernel.Avg(img, 1, 1)
-			expectedColour := srgb.Color{R: avg[0], G: avg[1], B: avg[2]}.ToNRGBA(avg[3])
+			expectedColour := srgb.ColorFromLinear(avg[0], avg[1], avg[2]).ToNRGBA(avg[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected average to be %+v but was %+v", expected, actual)
@@ -322,7 +322,7 @@ func TestKernel(t *testing.T) {
 				}
 
 				result := kernel.Max(img, 1, 1)
-				expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2]}.ToNRGBA(max[3])
+				expectedColour := srgb.ColorFromLinear(max[0], max[1], max[2]).ToNRGBA(max[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -392,7 +392,7 @@ func TestKernel(t *testing.T) {
 			}
 
 			result := kernel.Max(img, 1, 1)
-			expectedColour := srgb.Color{R: max[0], G: max[1], B: max[2]}.ToNRGBA(max[3])
+			expectedColour := srgb.ColorFromLinear(max[0], max[1], max[2]).ToNRGBA(max[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected max to be %+v but was %+v", expected, actual)
@@ -430,7 +430,7 @@ func TestKernel(t *testing.T) {
 				}
 
 				result := kernel.Min(img, 1, 1)
-				expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2]}.ToNRGBA(min[3])
+				expectedColour := srgb.ColorFromLinear(min[0], min[1], min[2]).ToNRGBA(min[3])
 
 				if expected, actual := expectedColour, result; expected != actual {
 					t.Errorf("Expected min to be %+v but was %+v", expected, actual)
@@ -496,7 +496,7 @@ func TestKernel(t *testing.T) {
 			}
 
 			result := kernel.Min(img, 1, 1)
-			expectedColour := srgb.Color{R: min[0], G: min[1], B: min[2]}.ToNRGBA(min[3])
+			expectedColour := srgb.ColorFromLinear(min[0], min[1], min[2]).ToNRGBA(min[3])
 
 			if expected, actual := expectedColour, result; expected != actual {
 				t.Errorf("Expected min to be %+v but was %+v", expected, actual)

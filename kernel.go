@@ -3,7 +3,6 @@ package convolver
 import "C"
 import (
 	"fmt"
-	"github.com/mandykoh/prism/colconv"
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
@@ -229,7 +228,7 @@ type kernelWeight struct {
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
-	return srgb.Color{R: kw.R, G: kw.G, B: kw.B}.ToNRGBA(kw.A)
+	return srgb.ColorFromLinear(kw.R, kw.G, kw.B).ToNRGBA(kw.A)
 }
 
 func convertImageToNRGBA(img image.Image) *image.NRGBA {
@@ -255,8 +254,8 @@ func convertImageToNRGBA(img image.Image) *image.NRGBA {
 
 		for i := bounds.Min.Y; i < bounds.Max.Y; i++ {
 			for j := bounds.Min.X; j < bounds.Max.X; j++ {
-				c := colconv.RGBAtoNRGBA(inputImg.RGBAAt(j, i))
-				nrgbaImg.SetNRGBA(j, i, c)
+				c, a := srgb.ColorFromRGBA(inputImg.RGBAAt(j, i))
+				nrgbaImg.SetNRGBA(j, i, c.ToNRGBA(a))
 			}
 		}
 		return nrgbaImg
