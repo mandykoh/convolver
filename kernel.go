@@ -3,10 +3,10 @@ package convolver
 import "C"
 import (
 	"fmt"
+	"github.com/mandykoh/prism"
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
-	"image/draw"
 	"sync"
 )
 
@@ -19,15 +19,15 @@ type Kernel struct {
 }
 
 func (k *Kernel) ApplyMax(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertImageToNRGBA(img), k.Max, parallelism)
+	return k.apply(prism.ConvertImageToNGRBA(img), k.Max, parallelism)
 }
 
 func (k *Kernel) ApplyMin(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertImageToNRGBA(img), k.Min, parallelism)
+	return k.apply(prism.ConvertImageToNGRBA(img), k.Min, parallelism)
 }
 
 func (k *Kernel) ApplyAvg(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(convertImageToNRGBA(img), k.Avg, parallelism)
+	return k.apply(prism.ConvertImageToNGRBA(img), k.Avg, parallelism)
 }
 
 func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGBA {
@@ -229,44 +229,4 @@ type kernelWeight struct {
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {
 	return srgb.ColorFromLinear(kw.R, kw.G, kw.B).ToNRGBA(kw.A)
-}
-
-func convertImageToNRGBA(img image.Image) *image.NRGBA {
-	switch inputImg := img.(type) {
-
-	case *image.YCbCr:
-		bounds := img.Bounds()
-		nrgbaImg := image.NewNRGBA(bounds)
-
-		for i := bounds.Min.Y; i < bounds.Max.Y; i++ {
-			for j := bounds.Min.X; j < bounds.Max.X; j++ {
-				c := inputImg.YCbCrAt(j, i)
-				r, g, b := color.YCbCrToRGB(c.Y, c.Cb, c.Cr)
-				nrgba := color.NRGBA{R: r, G: g, B: b, A: 255}
-				nrgbaImg.SetNRGBA(j, i, nrgba)
-			}
-		}
-		return nrgbaImg
-
-	case *image.RGBA:
-		bounds := img.Bounds()
-		nrgbaImg := image.NewNRGBA(bounds)
-
-		for i := bounds.Min.Y; i < bounds.Max.Y; i++ {
-			for j := bounds.Min.X; j < bounds.Max.X; j++ {
-				c, a := srgb.ColorFromRGBA(inputImg.RGBAAt(j, i))
-				nrgbaImg.SetNRGBA(j, i, c.ToNRGBA(a))
-			}
-		}
-		return nrgbaImg
-
-	case *image.NRGBA:
-		return inputImg
-
-	default:
-		bounds := img.Bounds()
-		nrgbaImg := image.NewNRGBA(bounds)
-		draw.Draw(nrgbaImg, bounds, img, bounds.Min, draw.Src)
-		return nrgbaImg
-	}
 }
