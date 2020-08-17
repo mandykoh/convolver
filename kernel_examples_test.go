@@ -1,13 +1,14 @@
 package convolver_test
 
 import (
-	"github.com/mandykoh/convolver"
 	"image/png"
 	"log"
 	"os"
 	"path"
 	"runtime"
 	"time"
+
+	"github.com/mandykoh/convolver"
 )
 
 func ExampleKernel_channelExtraction() {
