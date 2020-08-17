@@ -1,13 +1,13 @@
 package convolver
 
-import "C"
 import (
 	"fmt"
-	"github.com/mandykoh/prism"
-	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
 	"sync"
+
+	"github.com/mandykoh/prism"
+	"github.com/mandykoh/prism/srgb"
 )
 
 type opFunc func(img *image.NRGBA, x, y int) color.NRGBA
@@ -65,16 +65,12 @@ func (k *Kernel) Avg(img *image.NRGBA, x, y int) color.NRGBA {
 	for s := clip.Top; s < k.sideLength-clip.Bottom; s++ {
 		for t := clip.Left; t < k.sideLength-clip.Right; t++ {
 			weight := k.weights[s*k.sideLength+t]
-			totalWeight.R += weight.R
-			totalWeight.G += weight.G
-			totalWeight.B += weight.B
-			totalWeight.A += weight.A
+			// totalWeight = totalWeight + weight
+			totalWeight = totalWeight.add(weight)
 
 			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
-			sum.R += c.R * weight.R
-			sum.G += c.G * weight.G
-			sum.B += c.B * weight.B
-			sum.A += a * weight.A
+			// sum = sum + (weight * c)
+			sum = sum.add(weight.mul(kernelWeight{c.R, c.G, c.B, a}))
 		}
 	}
 
@@ -123,17 +119,20 @@ func (k *Kernel) Max(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
-			if c.R*weight.R > max.R && weight.R != 0 {
-				max.R = c.R
+			multiplication := weight.mul(kernelWeight{c.R, c.G, c.B, a})
+			maximum := multiplication.max(max)
+
+			if weight.R != 0 {
+				max.R = maximum.R
 			}
-			if c.G*weight.G > max.G && weight.G != 0 {
-				max.G = c.G
+			if weight.G != 0 {
+				max.G = maximum.G
 			}
-			if c.B*weight.B > max.B && weight.B != 0 {
-				max.B = c.B
+			if weight.B != 0 {
+				max.B = maximum.B
 			}
-			if a*weight.A > max.A && weight.A != 0 {
-				max.A = a
+			if weight.A != 0 {
+				max.A = maximum.A
 			}
 		}
 	}
@@ -151,17 +150,20 @@ func (k *Kernel) Min(img *image.NRGBA, x, y int) color.NRGBA {
 			weight := k.weights[s*k.sideLength+t]
 
 			c, a := srgb.ColorFromNRGBA(img.NRGBAAt(x+t-k.radius, y+s-k.radius))
-			if c.R*weight.R < min.R && weight.R != 0 {
-				min.R = c.R
+			multiplication := weight.mul(kernelWeight{c.R, c.G, c.B, a})
+			minimum := multiplication.min(min)
+
+			if weight.R != 0 {
+				min.R = minimum.R
 			}
-			if c.G*weight.G < min.G && weight.G != 0 {
-				min.G = c.G
+			if weight.G != 0 {
+				min.G = minimum.G
 			}
-			if c.B*weight.B < min.B && weight.B != 0 {
-				min.B = c.B
+			if weight.B != 0 {
+				min.B = minimum.B
 			}
-			if a*weight.A < min.A && weight.A != 0 {
-				min.A = a
+			if weight.A != 0 {
+				min.A = minimum.A
 			}
 		}
 	}
@@ -225,6 +227,26 @@ type kernelWeight struct {
 	G float32
 	B float32
 	A float32
+}
+
+func (kw kernelWeight) add(b kernelWeight) (r kernelWeight) {
+	add(&kw, &b, &r)
+	return
+}
+
+func (kw kernelWeight) mul(b kernelWeight) (r kernelWeight) {
+	mul(&kw, &b, &r)
+	return
+}
+
+func (kw kernelWeight) max(b kernelWeight) (r kernelWeight) {
+	max(&kw, &b, &r)
+	return
+}
+
+func (kw kernelWeight) min(b kernelWeight) (r kernelWeight) {
+	min(&kw, &b, &r)
+	return
 }
 
 func (kw *kernelWeight) toNRGBA() color.NRGBA {

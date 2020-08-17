@@ -2,13 +2,14 @@ package convolver
 
 import (
 	"fmt"
-	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
 	"math/rand"
 	"runtime"
 	"sync"
 	"testing"
+
+	"github.com/mandykoh/prism/srgb"
 )
 
 func BenchmarkAggregation(b *testing.B) {
