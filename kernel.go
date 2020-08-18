@@ -1,13 +1,12 @@
 package convolver
 
-import "C"
 import (
 	"fmt"
+	"github.com/mandykoh/go-parallel"
 	"github.com/mandykoh/prism"
 	"github.com/mandykoh/prism/srgb"
 	"image"
 	"image/color"
-	"sync"
 )
 
 type opFunc func(img *image.NRGBA, x, y int) color.NRGBA
@@ -34,24 +33,13 @@ func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGB
 	bounds := img.Rect
 	result := image.NewNRGBA(bounds)
 
-	var allDone sync.WaitGroup
-	allDone.Add(parallelism)
-
-	for worker := 0; worker < parallelism; worker++ {
-		workerNum := worker
-
-		go func() {
-			defer allDone.Done()
-
-			for i := bounds.Min.Y + workerNum; i < bounds.Max.Y; i += parallelism {
-				for j := bounds.Min.X; j < bounds.Max.X; j++ {
-					result.SetNRGBA(j, i, op(img, j, i))
-				}
+	parallel.RunWorkers(parallelism, func(workerNum, workerCount int) {
+		for i := bounds.Min.Y + workerNum; i < bounds.Max.Y; i += workerCount {
+			for j := bounds.Min.X; j < bounds.Max.X; j++ {
+				result.SetNRGBA(j, i, op(img, j, i))
 			}
-		}()
-	}
-
-	allDone.Wait()
+		}
+	})
 
 	return result
 }
