@@ -6,5 +6,7 @@ github.com/mandykoh/prism v0.29.0 h1:aoKmAaMi72cREbwlPdggicFtmovgK7htg8K1+2HhM0s
 github.com/mandykoh/prism v0.29.0/go.mod h1:GCe9SPQMw3uUJufAmg+WzZhjtsiwve2jWFY6f8BbOr4=
 github.com/mandykoh/prism v0.31.0 h1:L2Qodd+l9+YBGLT8DR6mNSGLAmeQb7Iz5Y8fCh9uVVI=
 github.com/mandykoh/prism v0.31.0/go.mod h1:GCe9SPQMw3uUJufAmg+WzZhjtsiwve2jWFY6f8BbOr4=
+github.com/mandykoh/prism v0.32.0 h1:ezITIrQIaTR4MUuXCGO0OAJZncOj/uYyuXlqpsFwBb8=
+github.com/mandykoh/prism v0.32.0/go.mod h1:GCe9SPQMw3uUJufAmg+WzZhjtsiwve2jWFY6f8BbOr4=
 golang.org/x/image v0.0.0-20200801110659-972c09e46d76/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

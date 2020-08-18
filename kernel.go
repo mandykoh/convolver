@@ -19,15 +19,15 @@ type Kernel struct {
 }
 
 func (k *Kernel) ApplyMax(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(prism.ConvertImageToNRGBA(img), k.Max, parallelism)
+	return k.apply(prism.ConvertImageToNRGBA(img, parallelism), k.Max, parallelism)
 }
 
 func (k *Kernel) ApplyMin(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(prism.ConvertImageToNRGBA(img), k.Min, parallelism)
+	return k.apply(prism.ConvertImageToNRGBA(img, parallelism), k.Min, parallelism)
 }
 
 func (k *Kernel) ApplyAvg(img image.Image, parallelism int) *image.NRGBA {
-	return k.apply(prism.ConvertImageToNRGBA(img), k.Avg, parallelism)
+	return k.apply(prism.ConvertImageToNRGBA(img, parallelism), k.Avg, parallelism)
 }
 
 func (k *Kernel) apply(img *image.NRGBA, op opFunc, parallelism int) *image.NRGBA {
